@@ -455,4 +455,118 @@
         drawStaticFrame();
         return;
       }
-      isPlay
+      isPlayingPreview = true;
+      document.getElementById('btnPreview').textContent = '⏹ Parar Prévia';
+      playSequence(false);
+    });
+
+    // --- RENDERIZAÇÃO FINAL E DOWNLOAD ---
+    document.getElementById('btnRender').addEventListener('click', async () => {
+      const renderStatus = document.getElementById('renderStatus');
+      if (clips.length === 0) {
+        renderStatus.textContent = '⚠️ Selecione pelo menos 1 vídeo da galeria primeiro!';
+        return;
+      }
+      if (isPlayingPreview) {
+        isPlayingPreview = false;
+        cancelAnimationFrame(previewAnimId);
+      }
+
+      const btnRender = document.getElementById('btnRender');
+      btnRender.disabled = true;
+      renderStatus.textContent = '🎬 Renderizando seu Reels 9:16... Não feche a tela.';
+
+      const stream = canvas.captureStream(30);
+      let audioCtx = null;
+      let beatEl = null;
+
+      if (audioFile) {
+        try {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          beatEl = new Audio(URL.createObjectURL(audioFile));
+          beatEl.crossOrigin = 'anonymous';
+          const source = audioCtx.createMediaElementSource(beatEl);
+          const dest = audioCtx.createMediaStreamDestination();
+          source.connect(dest);
+          source.connect(audioCtx.destination);
+          dest.stream.getAudioTracks().forEach(track => stream.addTrack(track));
+          await beatEl.play();
+        } catch (e) {
+          console.warn('Áudio opcional ignorado:', e);
+        }
+      }
+
+      const mimeType = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : 'video/webm';
+      const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 5000000 });
+      const chunks = [];
+      recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+
+      recorder.onstop = () => {
+        if (beatEl) beatEl.pause();
+        if (audioCtx) audioCtx.close();
+        const blob = new Blob(chunks, { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `tattooreels-guarulhos.${mimeType === 'video/mp4' ? 'mp4' : 'webm'}`;
+        a.click();
+        btnRender.disabled = false;
+        renderStatus.textContent = '✅ Vídeo pronto e baixado na sua galeria!';
+        renderStatus.className = 'status status-ok';
+        drawStaticFrame();
+      };
+
+      recorder.start();
+      await playSequence(true);
+      recorder.stop();
+    });
+
+    function playSequence(isExport) {
+      return new Promise(async (resolve) => {
+        const cutSec = parseFloat(document.getElementById('cutSpeed').value);
+        const totalDuration = clips.length * cutSec;
+
+        for (let i = 0; i < clips.length; i++) {
+          if (!isExport && !isPlayingPreview) break;
+          const v = clips[i].video;
+          v.currentTime = 0;
+          await v.play();
+          const startTime = performance.now();
+
+          await new Promise(stepDone => {
+            function frame(now) {
+              if (!isExport && !isPlayingPreview) { v.pause(); stepDone(); return; }
+              const elapsed = (now - startTime) / 1000;
+              if (elapsed >= cutSec || v.ended) {
+                v.pause();
+                stepDone();
+                return;
+              }
+              const segProgress = elapsed / cutSec;
+              const globalProgress = ((i * cutSec) + elapsed) / totalDuration;
+              const zoom = 1 + (segProgress * 0.07);
+              const flash = elapsed < 0.14 ? (1 - elapsed / 0.14) * 0.45 : 0;
+
+              ctx.fillStyle = '#050507';
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+              drawVideoCover(v, zoom);
+              drawOverlays(globalProgress, flash);
+
+              previewAnimId = requestAnimationFrame(frame);
+            }
+            previewAnimId = requestAnimationFrame(frame);
+          });
+        }
+
+        if (!isExport && isPlayingPreview) {
+          playSequence(false);
+        } else {
+          resolve();
+        }
+      });
+    }
+
+    drawStaticFrame();
+  </script>
+</body>
+</html>
