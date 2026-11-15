@@ -1,391 +1,556 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>TattooReels Studio Mobile</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
-  body { background: #0b0b0f; color: #f3f4f6; padding: 12px; max-width: 500px; margin: 0 auto; }
-  .top { display: flex; justify-content: space-between; align-items: center; background: #15151d; padding: 10px 14px; border-radius: 12px; border: 1px solid #262633; margin-bottom: 12px; }
-  .top h1 { font-size: 15px; font-weight: 800; color: #fff; }
-  .badge { font-size: 10px; font-weight: 700; color: #f59e0b; background: rgba(245,158,11,0.12); padding: 4px 8px; border-radius: 20px; border: 1px solid rgba(245,158,11,0.3); }
-  .preview-box { background: #15151d; border-radius: 14px; padding: 10px; border: 1px solid #262633; text-align: center; margin-bottom: 12px; }
-  canvas { width: 205px; height: 364px; background: #000; border-radius: 12px; border: 2px solid #2e2e3d; display: block; margin: 0 auto; }
-  .card { background: #15151d; border-radius: 14px; padding: 12px; border: 1px solid #262633; margin-bottom: 12px; }
-  .card h2 { font-size: 12px; text-transform: uppercase; color: #9ca3af; letter-spacing: 0.5px; margin-bottom: 8px; }
-  .btn { width: 100%; padding: 12px; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
-  .btn-pink { background: #e11d48; }
-  .btn-blue { background: #2563eb; margin-top: 8px; font-size: 13px; padding: 10px; }
-  .btn-green { background: #16a34a; font-size: 15px; padding: 14px; }
-  .btn-share { background: #059669; margin-top: 8px; display: none; }
-  .btn:disabled { opacity: 0.5; }
-  .clip-list { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
-  .clip-item { display: flex; justify-content: space-between; align-items: center; background: #0e0e14; padding: 8px 10px; border-radius: 8px; border: 1px solid #252530; font-size: 12px; }
-  .clip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 190px; }
-  .clip-actions button { background: #23232f; color: #fff; border: none; border-radius: 6px; padding: 4px 8px; margin-left: 4px; font-size: 12px; }
-  label { display: block; font-size: 11px; color: #9ca3af; margin: 8px 0 4px; font-weight: 600; }
-  select, input[type="text"] { width: 100%; background: #0e0e14; color: #fff; border: 1px solid #2a2a38; border-radius: 8px; padding: 10px; font-size: 13px; }
-  .status { font-size: 12px; text-align: center; margin-top: 8px; color: #f59e0b; font-weight: 600; min-height: 18px; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TattooReels Studio AI</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background: #0b0b0f; color: #f3f4f6; padding: 14px; max-width: 480px; margin: 0 auto; padding-bottom: 40px; }
+    .top { display: flex; justify-content: space-between; align-items: center; background: #15151d; padding: 12px 14px; border-radius: 14px; border: 1px solid #262635; margin-bottom: 14px; }
+    .top h1 { font-size: 15px; font-weight: 800; letter-spacing: 0.4px; }
+    .badge { font-size: 10px; font-weight: 700; color: #fbbf24; background: rgba(251, 191, 36, 0.12); border: 1px solid rgba(251, 191, 36, 0.35); padding: 4px 8px; border-radius: 99px; }
+    .preview-box { background: #15151d; border: 1px solid #262635; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; align-items: center; margin-bottom: 14px; }
+    canvas { width: 205px; height: 364px; background: #050507; border-radius: 14px; border: 2px solid #2d2d3d; box-shadow: 0 10px 25px rgba(0,0,0,0.6); }
+    .preview-controls { display: flex; gap: 8px; margin-top: 10px; width: 205px; }
+    .card { background: #15151d; border: 1px solid #262635; border-radius: 14px; padding: 14px; margin-bottom: 14px; }
+    .card h2 { font-size: 12px; text-transform: uppercase; color: #9ca3af; letter-spacing: 0.6px; margin-bottom: 10px; }
+    label { display: block; font-size: 12px; color: #d1d5db; margin-bottom: 5px; margin-top: 10px; }
+    label:first-of-type { margin-top: 0; }
+    input[type="text"], input[type="password"], select, textarea { width: 100%; background: #0b0b0f; border: 1px solid #2e2e3e; color: #fff; padding: 11px 12px; border-radius: 10px; font-size: 14px; outline: none; }
+    input:focus, select:focus, textarea:focus { border-color: #e11d48; }
+    textarea { resize: vertical; min-height: 95px; font-size: 13px; line-height: 1.4; }
+    .btn { width: 100%; padding: 12px; border: none; border-radius: 10px; color: #fff; font-weight: 700; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity 0.2s; }
+    .btn:active { opacity: 0.8; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-pink { background: #e11d48; }
+    .btn-blue { background: #2563eb; margin-top: 8px; }
+    .btn-green { background: #16a34a; font-size: 15px; padding: 14px; }
+    .btn-purple { background: #7c3aed; }
+    .btn-recording { background: #dc2626; animation: pulse 1.2s infinite; }
+    .btn-dark { background: #262635; font-size: 12px; padding: 8px 10px; }
+    .row { display: flex; gap: 8px; align-items: center; }
+    .clip-list { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+    .clip-item { display: flex; justify-content: space-between; align-items: center; background: #0b0b0f; border: 1px solid #262635; padding: 8px 10px; border-radius: 8px; font-size: 12px; }
+    .clip-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px; }
+    .clip-actions { display: flex; gap: 4px; }
+    .mini-btn { background: #262635; border: none; color: #fff; padding: 4px 8px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+    .status { text-align: center; font-size: 12px; color: #fbbf24; margin-top: 8px; line-height: 1.4; }
+    .status-ok { color: #4ade80; }
+    .hidden { display: none; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.65; } }
+  </style>
 </head>
 <body>
 
-<div class="top">
-  <h1>💉 TATTOOREELS STUDIO</h1>
-  <span class="badge">9:16 • GUARULHOS</span>
-</div>
+  <div class="top">
+    <h1>💉 TATTOOREELS STUDIO</h1>
+    <span class="badge">9:16 • GUARULHOS</span>
+  </div>
 
-<div class="preview-box">
-  <canvas id="cv" width="720" height="1280"></canvas>
-</div>
+  <div class="preview-box">
+    <canvas id="canvas" width="540" height="960"></canvas>
+    <div class="preview-controls">
+      <button type="button" class="btn btn-dark" id="btnPreview">▶ Testar Prévia</button>
+    </div>
+  </div>
 
-<div class="card">
-  <h2>1. Vídeos da Galeria (Resultado final por último)</h2>
-  <input type="file" id="vidInput" accept="video/*" multiple hidden>
-  <button class="btn btn-pink" onclick="document.getElementById('vidInput').click()">+ Selecionar Vídeos da Galeria</button>
-  <div class="clip-list" id="clipList"></div>
+  <!-- 1. VÍDEOS E BEAT -->
+  <div class="card">
+    <h2>1. Vídeos da Galeria (Resultado Final por Último)</h2>
+    <input type="file" id="videoInput" accept="video/*" multiple class="hidden">
+    <button type="button" class="btn btn-pink" onclick="document.getElementById('videoInput').click()">+ Selecionar Vídeos da Galeria</button>
+    <div id="clipList" class="clip-list"></div>
 
-  <input type="file" id="audInput" accept="audio/*" hidden>
-  <button class="btn btn-blue" id="audBtn" onclick="document.getElementById('audInput').click()">🎵 Adicionar Beat / Música (Opcional)</button>
-</div>
+    <input type="file" id="audioInput" accept="audio/*" class="hidden">
+    <button type="button" class="btn btn-blue" onclick="document.getElementById('audioInput').click()">🎵 Adicionar Beat / Música (Opcional)</button>
+    <div id="audioInfo" class="status hidden"></div>
+  </div>
 
-<div class="card">
-  <h2>2. Ritmo e Textos de Conversão</h2>
-  <label>Velocidade dos Cortes:</label>
-  <select id="ritmo">
-    <option value="1.6">⚡ Anúncio Direto WhatsApp (Cortes 1.6s)</option>
-    <option value="1.85" selected>🔥 Reels Viral 130 BPM (Cortes 1.85s)</option>
-    <option value="2.8">💎 Showcase Realismo & Sombra (Cortes 2.8s)</option>
-  </select>
+  <!-- 2. IA GROQ (MICROFONE + LEGENDAS) -->
+  <div class="card">
+    <h2>2. IA de Voz e Legendas (Groq)</h2>
+    <label>Sua API Key da Groq (salva só no seu celular):</label>
+    <div class="row">
+      <input type="password" id="groqKey" placeholder="Cole sua chave gsk_...">
+      <button type="button" class="btn btn-dark" style="width: auto; padding: 11px 14px;" id="btnSaveKey">Salvar</button>
+    </div>
+    <div id="keyStatus" class="status"></div>
 
-  <label>Gancho no Topo (Prende atenção nos 2s iniciais):</label>
-  <input type="text" id="hookTxt" value="FECHAMENTO FEITO EM GUARULHOS 🔥">
+    <label>Fale sobre a tattoo (estilo, local, sessão):</label>
+    <button type="button" class="btn btn-purple" id="btnMic">🎙️ Tocar para Falar (Gerar Gancho + Legenda)</button>
+    <div id="aiStatus" class="status"></div>
 
-  <label>Botão Verde do WhatsApp:</label>
-  <input type="text" id="ctaTxt" value="📲 ORÇAMENTO NO WHATSAPP">
+    <div id="captionBox" class="hidden" style="margin-top: 10px;">
+      <label>Legenda Pronta para o Instagram:</label>
+      <textarea id="captionOutput"></textarea>
+      <button type="button" class="btn btn-dark" style="margin-top: 6px;" id="btnCopyCaption">📋 Copiar Legenda</button>
+    </div>
+  </div>
 
-  <label>Localização / Chamada:</label>
-  <input type="text" id="subTxt" value="GUARULHOS - SP • AGENDA ABERTA">
+  <!-- 3. RITMO E TEXTOS -->
+  <div class="card">
+    <h2>3. Ritmo e Textos de Conversão</h2>
+    <label>Velocidade dos Cortes:</label>
+    <select id="cutSpeed">
+      <option value="1.85">🔥 Reels Viral 130 BPM (Cortes 1.85s)</option>
+      <option value="1.20">⚡ Mandelão / Automotivo Rápido (Cortes 1.20s)</option>
+      <option value="2.80">🎨 Realismo Black &amp; Grey Detalhado (Cortes 2.80s)</option>
+    </select>
 
-  <label>Seu @ do Instagram:</label>
-  <input type="text" id="arrobaTxt" value="@williandepaulatattoo">
-</div>
+    <label>Gancho no Topo (Prende atenção nos 2s iniciais):</label>
+    <input type="text" id="hookText" value="FECHAMENTO FEITO EM GUARULHOS 🔥">
 
-<div class="card">
-  <button class="btn btn-green" id="renderBtn" onclick="gerarVideo()">🚀 GERAR E BAIXAR VÍDEO PRONTO</button>
-  <button class="btn btn-share" id="shareBtn" onclick="compartilharVideo()">📲 SALVAR NA GALERIA / WHATSAPP</button>
-  <div class="status" id="status">Pronto! Adicione seus vídeos acima para começar.</div>
-</div>
+    <label>Botão Verde do WhatsApp:</label>
+    <input type="text" id="ctaText" value="📲 ORÇAMENTO NO WHATSAPP">
 
-<script>
-const cv = document.getElementById('cv');
-const ctx = cv.getContext('2d');
-let clips = [];
-let segments = [];
-let audioUrl = null;
-let audioName = '';
-let lastBlob = null;
-let lastFileName = 'reels_tattoo_guarulhos.mp4';
-let isRendering = false;
-let startTime = performance.now();
-let currentSegIdx = -1;
+    <label>Localização / Chamada:</label>
+    <input type="text" id="locText" value="GUARULHOS - SP • AGENDA ABERTA">
 
-document.getElementById('vidInput').addEventListener('change', async (e) => {
-  const files = Array.from(e.target.files);
-  for (const f of files) {
-    const url = URL.createObjectURL(f);
-    const v = document.createElement('video');
-    v.src = url;
-    v.muted = true;
-    v.playsInline = true;
-    v.setAttribute('playsinline', '');
-    v.preload = 'auto';
-    await new Promise(res => {
-      v.onloadedmetadata = () => res();
-      v.onerror = () => res();
-    });
-    clips.push({ name: f.name, url, video: v, duration: v.duration || 3 });
-  }
-  e.target.value = '';
-  atualizarLista();
-  reconstruirSegmentos();
-});
+    <label>Seu @ do Instagram:</label>
+    <input type="text" id="instaText" value="@williandepaulatattoo">
+  </div>
 
-document.getElementById('audInput').addEventListener('change', (e) => {
-  const f = e.target.files[0];
-  if (f) {
-    audioUrl = URL.createObjectURL(f);
-    audioName = f.name;
-    document.getElementById('audBtn').textContent = '🎵 ' + audioName.slice(0, 28);
-  }
-});
+  <button type="button" class="btn btn-green" id="btnRender">🚀 GERAR E BAIXAR VÍDEO PRONTO</button>
+  <div id="renderStatus" class="status">Pronto! Adicione seus vídeos acima para começar.</div>
 
-function atualizarLista() {
-  const list = document.getElementById('clipList');
-  list.innerHTML = '';
-  clips.forEach((c, i) => {
-    const div = document.createElement('div');
-    div.className = 'clip-item';
-    div.innerHTML = `
-      <span class="clip-name">${i + 1}. ${c.name}</span>
-      <div class="clip-actions">
-        <button onclick="mover(${i},-1)">▲</button>
-        <button onclick="mover(${i},1)">▼</button>
-        <button onclick="remover(${i})">✕</button>
-      </div>`;
-    list.appendChild(div);
-  });
-}
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let clips = [];
+    let audioFile = null;
+    let isPlayingPreview = false;
+    let previewAnimId = null;
 
-function mover(i, dir) {
-  const ni = i + dir;
-  if (ni < 0 || ni >= clips.length) return;
-  [clips[i], clips[ni]] = [clips[ni], clips[i]];
-  atualizarLista();
-  reconstruirSegmentos();
-}
-
-function remover(i) {
-  clips.splice(i, 1);
-  atualizarLista();
-  reconstruirSegmentos();
-}
-
-document.getElementById('ritmo').addEventListener('change', reconstruirSegmentos);
-
-function reconstruirSegmentos() {
-  segments = [];
-  const baseDur = parseFloat(document.getElementById('ritmo').value);
-  if (clips.length === 1 && clips[0].duration > 4.5) {
-    const c = clips[0];
-    [0.15, 0.5, 0.78].forEach((pct, idx) => {
-      const isLast = idx === 2;
-      const d = isLast ? baseDur * 1.35 : baseDur;
-      segments.push({ video: c.video, offset: Math.min(c.duration - d, c.duration * pct), dur: d, isLast });
-    });
-  } else {
-    clips.forEach((c, idx) => {
-      const isLast = idx === clips.length - 1;
-      const target = isLast ? baseDur * 1.4 : baseDur;
-      const dur = Math.min(target, Math.max(0.7, c.duration - 0.1));
-      const offset = Math.max(0, (c.duration - dur) * 0.3);
-      segments.push({ video: c.video, offset, dur, isLast });
-    });
-  }
-  currentSegIdx = -1;
-  startTime = performance.now();
-}
-
-function roundRect(x, y, w, h, r, fill, stroke) {
-  ctx.beginPath();
-  ctx.roundRect(x, y, w, h, r);
-  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
-  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 3; ctx.stroke(); }
-}
-
-function desenharOverlays(progressoTotal, flashAlpha) {
-  if (flashAlpha > 0) {
-    ctx.fillStyle = `rgba(255,255,255,${flashAlpha})`;
-    ctx.fillRect(0, 0, 720, 1280);
-  }
-
-  // Barra de retenção no topo
-  ctx.fillStyle = 'rgba(0,0,0,0.45)';
-  ctx.fillRect(0, 0, 720, 10);
-  ctx.fillStyle = '#e11d48';
-  ctx.fillRect(0, 0, 720 * progressoTotal, 10);
-
-  // Banner Hook no topo
-  const hook = document.getElementById('hookTxt').value.trim();
-  if (hook) {
-    ctx.font = 'bold 30px system-ui, sans-serif';
-    const tw = Math.min(620, ctx.measureText(hook).width + 56);
-    const bx = (720 - tw) / 2;
-    roundRect(bx, 85, tw, 68, 18, 'rgba(12,12,18,0.88)', '#e11d48');
-    ctx.fillStyle = '#ffffff';
-    ctx.textAlign = 'center';
-    ctx.fillText(hook, 360, 129, 590);
-  }
-
-  // Degradê inferior
-  const grad = ctx.createLinearGradient(0, 960, 0, 1280);
-  grad.addColorStop(0, 'rgba(0,0,0,0)');
-  grad.addColorStop(1, 'rgba(0,0,0,0.9)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 960, 720, 320);
-
-  // Botão WhatsApp
-  const cta = document.getElementById('ctaTxt').value.trim() || '📲 ORÇAMENTO NO WHATSAPP';
-  ctx.font = 'bold 30px system-ui, sans-serif';
-  const cw = Math.min(630, ctx.measureText(cta).width + 70);
-  roundRect((720 - cw) / 2, 1065, cw, 72, 22, '#25d366', null);
-  ctx.fillStyle = '#07120b';
-  ctx.textAlign = 'center';
-  ctx.fillText(cta, 360, 1111, 600);
-
-  // Subtítulo Guarulhos e @
-  const sub = document.getElementById('subTxt').value.trim();
-  if (sub) {
-    ctx.font = 'bold 23px system-ui, sans-serif';
-    ctx.fillStyle = '#f59e0b';
-    ctx.fillText(sub, 360, 1175, 660);
-  }
-  const arroba = document.getElementById('arrobaTxt').value.trim();
-  if (arroba) {
-    ctx.font = '600 22px system-ui, sans-serif';
-    ctx.fillStyle = '#e5e7eb';
-    ctx.fillText(arroba, 360, 1212, 660);
-  }
-}
-
-function loop(now) {
-  const elapsed = (now - startTime) / 1000;
-
-  if (segments.length === 0) {
-    // Tela de demonstração enquanto nenhum vídeo foi escolhido
-    ctx.fillStyle = '#111118';
-    ctx.fillRect(0, 0, 720, 1280);
-    ctx.fillStyle = '#6b7280';
-    ctx.font = 'bold 28px system-ui, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('PRÉVIA 9:16 PRONTA', 360, 600);
-    ctx.font = '22px system-ui, sans-serif';
-    ctx.fillText('Toque em "+ Selecionar Vídeos"', 360, 645);
-    desenharOverlays((elapsed % 5) / 5, 0);
-    requestAnimationFrame(loop);
-    return;
-  }
-
-  const totalDur = segments.reduce((acc, s) => acc + s.dur, 0);
-  let t = elapsed;
-
-  if (t >= totalDur) {
-    if (isRendering) return; // Finalizado pelo renderizador
-    startTime = now;
-    t = 0;
-    currentSegIdx = -1;
-  }
-
-  let acc = 0;
-  let activeIdx = 0;
-  let localT = 0;
-  for (let i = 0; i < segments.length; i++) {
-    if (t < acc + segments[i].dur) {
-      activeIdx = i;
-      localT = t - acc;
-      break;
+    // --- CARREGAR E SALVAR API KEY GROQ ---
+    const groqKeyInput = document.getElementById('groqKey');
+    const keyStatus = document.getElementById('keyStatus');
+    const savedKey = localStorage.getItem('groq_api_key');
+    if (savedKey) {
+      groqKeyInput.value = savedKey;
+      keyStatus.textContent = '✅ Chave Groq salva e pronta!';
+      keyStatus.className = 'status status-ok';
     }
-    acc += segments[i].dur;
-  }
 
-  const seg = segments[activeIdx];
-  if (activeIdx !== currentSegIdx) {
-    currentSegIdx = activeIdx;
-    try {
-      seg.video.currentTime = seg.offset;
-      seg.video.play().catch(() => {});
-    } catch (e) {}
-  }
+    document.getElementById('btnSaveKey').addEventListener('click', () => {
+      const val = groqKeyInput.value.trim();
+      if (!val) {
+        localStorage.removeItem('groq_api_key');
+        keyStatus.textContent = 'Chave removida.';
+        keyStatus.className = 'status';
+        return;
+      }
+      localStorage.setItem('groq_api_key', val);
+      keyStatus.textContent = '✅ Chave Groq salva com sucesso!';
+      keyStatus.className = 'status status-ok';
+    });
 
-  // Desenha vídeo centralizado em 9:16 com zoom progressivo
-  const v = seg.video;
-  if (v.videoWidth && v.videoHeight) {
-    const prog = Math.min(1, localT / seg.dur);
-    const zoom = 1 + (seg.isLast ? 0.13 : 0.08) * prog;
-    const scale = Math.max(720 / v.videoWidth, 1280 / v.videoHeight) * zoom;
-    const dw = v.videoWidth * scale;
-    const dh = v.videoHeight * scale;
-    ctx.drawImage(v, (720 - dw) / 2, (1280 - dh) / 2, dw, dh);
-  }
+    // --- MICROFONE + WHISPER + LLAMA 3.3 ---
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let isRecording = false;
+    const btnMic = document.getElementById('btnMic');
+    const aiStatus = document.getElementById('aiStatus');
 
-  const flash = (seg.isLast && localT < 0.24) ? (1 - localT / 0.24) * 0.75 : 0;
-  desenharOverlays(Math.min(1, t / totalDur), flash);
-  requestAnimationFrame(loop);
-}
+    btnMic.addEventListener('click', async () => {
+      const apiKey = groqKeyInput.value.trim();
+      if (!apiKey) {
+        aiStatus.textContent = '⚠️ Cole e salve sua API Key da Groq acima primeiro.';
+        return;
+      }
 
-requestAnimationFrame(loop);
+      if (!isRecording) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          audioChunks = [];
+          mediaRecorder = new MediaRecorder(stream);
+          mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+          mediaRecorder.onstop = async () => {
+            stream.getTracks().forEach(t => t.stop());
+            const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+            await processVoiceWithGroq(audioBlob, apiKey);
+          };
+          mediaRecorder.start();
+          isRecording = true;
+          btnMic.textContent = '⏹️ Gravando... Toque para Finalizar';
+          btnMic.className = 'btn btn-recording';
+          aiStatus.textContent = '🎙️ Fale agora sobre a tattoo...';
+        } catch (err) {
+          aiStatus.textContent = '❌ Permissão de microfone negada. Libere no cadeado do navegador.';
+        }
+      } else {
+        mediaRecorder.stop();
+        isRecording = false;
+        btnMic.textContent = '🎙️ Tocar para Falar (Gerar Gancho + Legenda)';
+        btnMic.className = 'btn btn-purple';
+        aiStatus.textContent = '⏳ Transcrevendo sua voz com Whisper...';
+      }
+    });
 
-async function gerarVideo() {
-  if (segments.length === 0) {
-    alert('Selecione pelo menos 1 vídeo da sua galeria primeiro.');
-    return;
-  }
-  const btn = document.getElementById('renderBtn');
-  const status = document.getElementById('status');
-  btn.disabled = true;
-  isRendering = true;
-  status.textContent = '⏳ Renderizando vídeo em 9:16... Não bloqueie a tela.';
+    async function processVoiceWithGroq(audioBlob, apiKey) {
+      try {
+        const ext = audioBlob.type.includes('mp4') ? 'm4a' : 'webm';
+        const formData = new FormData();
+        formData.append('file', audioBlob, `voz.${ext}`);
+        formData.append('model', 'whisper-large-v3-turbo');
+        formData.append('language', 'pt');
 
-  const stream = cv.captureStream(30);
-  let audioEl = null;
-  let audioCtx = null;
+        const whisperRes = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${apiKey}` },
+          body: formData
+        });
+        const whisperData = await whisperRes.json();
+        if (!whisperRes.ok) throw new Error(whisperData.error?.message || 'Erro no Whisper');
 
-  if (audioUrl) {
-    try {
-      audioEl = new Audio(audioUrl);
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const src = audioCtx.createMediaElementSource(audioEl);
-      const dest = audioCtx.createMediaStreamDestination();
-      src.connect(dest);
-      dest.stream.getAudioTracks().forEach(tr => stream.addTrack(tr));
-      audioEl.play().catch(() => {});
-    } catch (e) {}
-  }
+        const transcript = whisperData.text;
+        aiStatus.textContent = `✍️ Criando gancho e legenda para: "${transcript}"...`;
 
-  const tipos = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'];
-  const mime = tipos.find(m => MediaRecorder.isTypeSupported(m)) || '';
-  const recorder = mime ? new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 4500000 }) : new MediaRecorder(stream);
-  const chunks = [];
+        const llamaRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'llama-3.3-70b-versatile',
+            temperature: 0.7,
+            response_format: { type: 'json_object' },
+            messages: [
+              {
+                role: 'system',
+                content: 'Você é especialista em marketing para estúdios de tatuagem em Guarulhos - SP. Responda APENAS em JSON válido com duas chaves: "gancho" (frase curta em MAIÚSCULAS com no máximo 36 caracteres e 1 emoji para o topo do Reels) e "legenda" (legenda persuasiva para Instagram Reels focada em clientes de Guarulhos - Vila Augusta, Bosque Maia, Centro - com CTA para orçamento no WhatsApp e hashtags de tatuagem em Guarulhos).'
+              },
+              {
+                role: 'user',
+                content: `O tatuador falou: ${transcript}`
+              }
+            ]
+          })
+        });
 
-  recorder.ondataavailable = e => { if (e.data && e.data.size > 0) chunks.push(e.data); };
-  recorder.onstop = () => {
-    if (audioEl) { audioEl.pause(); audioEl.src = ''; }
-    if (audioCtx) { audioCtx.close().catch(() => {}); }
-    const ext = (recorder.mimeType || '').includes('mp4') ? 'mp4' : 'webm';
-    lastFileName = `tattoo_guarulhos_${Date.now()}.${ext}`;
-    lastBlob = new Blob(chunks, { type: recorder.mimeType || 'video/mp4' });
+        const llamaData = await llamaRes.json();
+        if (!llamaRes.ok) throw new Error(llamaData.error?.message || 'Erro no Llama');
 
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(lastBlob);
-    a.download = lastFileName;
-    a.click();
+        const result = JSON.parse(llamaData.choices[0].message.content);
+        if (result.gancho) {
+          document.getElementById('hookText').value = result.gancho.toUpperCase();
+          drawStaticFrame();
+        }
+        if (result.legenda) {
+          document.getElementById('captionOutput').value = result.legenda;
+          document.getElementById('captionBox').classList.remove('hidden');
+        }
+        aiStatus.textContent = '✅ Gancho atualizado no vídeo e legenda pronta!';
+        aiStatus.className = 'status status-ok';
+      } catch (err) {
+        aiStatus.textContent = `❌ Erro na Groq: ${err.message}`;
+        aiStatus.className = 'status';
+      }
+    }
 
-    isRendering = false;
-    btn.disabled = false;
-    startTime = performance.now();
-    currentSegIdx = -1;
-    requestAnimationFrame(loop);
+    document.getElementById('btnCopyCaption').addEventListener('click', () => {
+      const txt = document.getElementById('captionOutput');
+      txt.select();
+      navigator.clipboard.writeText(txt.value);
+      aiStatus.textContent = '📋 Legenda copiada! Só colar no Instagram.';
+    });
 
-    status.textContent = '✅ Vídeo pronto e baixado! Use o botão verde abaixo para enviar.';
-    document.getElementById('shareBtn').style.display = 'flex';
-  };
+    // --- GERENCIAMENTO DE VÍDEOS E BEAT ---
+    document.getElementById('videoInput').addEventListener('change', async (e) => {
+      const files = Array.from(e.target.files);
+      for (const file of files) {
+        const url = URL.createObjectURL(file);
+        const video = document.createElement('video');
+        video.src = url;
+        video.muted = true;
+        video.playsInline = true;
+        await new Promise(res => { video.onloadeddata = res; });
+        clips.push({ name: file.name, url, video });
+      }
+      renderClipList();
+      drawStaticFrame();
+      e.target.value = '';
+    });
 
-  startTime = performance.now();
-  currentSegIdx = -1;
-  recorder.start();
+    document.getElementById('audioInput').addEventListener('change', (e) => {
+      if (e.target.files[0]) {
+        audioFile = e.target.files[0];
+        const info = document.getElementById('audioInfo');
+        info.textContent = `🎵 Beat carregado: ${audioFile.name}`;
+        info.classList.remove('hidden');
+      }
+    });
 
-  const totalMs = segments.reduce((acc, s) => acc + s.dur, 0) * 1000;
-  setTimeout(() => {
-    if (recorder.state !== 'inactive') recorder.stop();
-  }, totalMs + 150);
-}
+    function renderClipList() {
+      const list = document.getElementById('clipList');
+      list.innerHTML = '';
+      clips.forEach((clip, idx) => {
+        const div = document.createElement('div');
+        div.className = 'clip-item';
+        div.innerHTML = `
+          <span class="clip-name">${idx + 1}. ${clip.name}</span>
+          <div class="clip-actions">
+            <button type="button" class="mini-btn" onclick="moveClip(${idx}, -1)">↑</button>
+            <button type="button" class="mini-btn" onclick="moveClip(${idx}, 1)">↓</button>
+            <button type="button" class="mini-btn" onclick="removeClip(${idx})">✕</button>
+          </div>
+        `;
+        list.appendChild(div);
+      });
+    }
 
-async function compartilharVideo() {
-  if (!lastBlob) return;
-  const file = new File([lastBlob], lastFileName, { type: lastBlob.type });
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
-      await navigator.share({ files: [file], title: 'Reels Tatuagem Guarulhos' });
-    } catch (e) {}
-  } else {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(lastBlob);
-    a.download = lastFileName;
-    a.click();
-  }
-}
-</script>
+    window.moveClip = (idx, dir) => {
+      const target = idx + dir;
+      if (target < 0 || target >= clips.length) return;
+      [clips[idx], clips[target]] = [clips[target], clips[idx]];
+      renderClipList();
+      drawStaticFrame();
+    };
+
+    window.removeClip = (idx) => {
+      URL.revokeObjectURL(clips[idx].url);
+      clips.splice(idx, 1);
+      renderClipList();
+      drawStaticFrame();
+    };
+
+    // --- DESENHO DO CANVAS 9:16 ---
+    function drawOverlays(progressRatio = 0.5, flashAlpha = 0) {
+      const W = canvas.width;
+      const H = canvas.height;
+
+      // Barra de progresso no topo
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      ctx.fillRect(0, 0, W, 8);
+      ctx.fillStyle = '#e11d48';
+      ctx.fillRect(0, 0, W * progressRatio, 8);
+
+      // Gancho no topo
+      const hook = document.getElementById('hookText').value.trim();
+      if (hook) {
+        ctx.font = 'bold 21px sans-serif';
+        const padX = 24;
+        const boxW = Math.min(W - 40, ctx.measureText(hook).width + padX * 2);
+        const boxX = (W - boxW) / 2;
+        const boxY = 58;
+        ctx.fillStyle = 'rgba(11, 11, 15, 0.85)';
+        ctx.strokeStyle = '#e11d48';
+        ctx.lineWidth = 3;
+        roundRect(ctx, boxX, boxY, boxW, 54, 14, true, true);
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(hook, W / 2, boxY + 27, boxW - 20);
+      }
+
+      // Botão Verde WhatsApp
+      const cta = document.getElementById('ctaText').value.trim();
+      if (cta) {
+        ctx.font = '800 22px sans-serif';
+        const boxW = Math.min(W - 60, ctx.measureText(cta).width + 54);
+        const boxX = (W - boxW) / 2;
+        const boxY = H - 175;
+        ctx.fillStyle = '#16a34a';
+        roundRect(ctx, boxX, boxY, boxW, 56, 16, true, false);
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(cta, W / 2, boxY + 28, boxW - 24);
+      }
+
+      // Localização + @
+      const loc = document.getElementById('locText').value.trim();
+      const insta = document.getElementById('instaText').value.trim();
+      ctx.textAlign = 'center';
+      if (loc) {
+        ctx.font = 'bold 17px sans-serif';
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillText(loc, W / 2, H - 95);
+      }
+      if (insta) {
+        ctx.font = '600 17px sans-serif';
+        ctx.fillStyle = '#e5e7eb';
+        ctx.fillText(insta, W / 2, H - 68);
+      }
+
+      // Flash na troca de corte
+      if (flashAlpha > 0) {
+        ctx.fillStyle = `rgba(255, 255, 255, ${flashAlpha})`;
+        ctx.fillRect(0, 0, W, H);
+      }
+    }
+
+    function drawVideoCover(video, zoom = 1) {
+      const W = canvas.width;
+      const H = canvas.height;
+      const vw = video.videoWidth || W;
+      const vh = video.videoHeight || H;
+      const scale = Math.max(W / vw, H / vh) * zoom;
+      const dw = vw * scale;
+      const dh = vh * scale;
+      const dx = (W - dw) / 2;
+      const dy = (H - dh) / 2;
+      ctx.drawImage(video, dx, dy, dw, dh);
+    }
+
+    function drawStaticFrame() {
+      ctx.fillStyle = '#050507';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      if (clips.length > 0) {
+        drawVideoCover(clips[0].video, 1);
+      } else {
+        ctx.fillStyle = '#6b7280';
+        ctx.font = 'bold 20px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('PRÉVIA 9:16 PRONTA', canvas.width / 2, canvas.height / 2 - 12);
+        ctx.font = '15px sans-serif';
+        ctx.fillText('Toque em "+ Selecionar Vídeos"', canvas.width / 2, canvas.height / 2 + 16);
+      }
+      drawOverlays(0.45, 0);
+    }
+
+    function roundRect(ctx, x, y, w, h, r, fill, stroke) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+      if (fill) ctx.fill();
+      if (stroke) ctx.stroke();
+    }
+
+    ['hookText', 'ctaText', 'locText', 'instaText'].forEach(id => {
+      document.getElementById(id).addEventListener('input', () => {
+        if (!isPlayingPreview) drawStaticFrame();
+      });
+    });
+
+    // --- PRÉVIA ANIMADA ---
+    document.getElementById('btnPreview').addEventListener('click', () => {
+      if (clips.length === 0) return;
+      if (isPlayingPreview) {
+        isPlayingPreview = false;
+        cancelAnimationFrame(previewAnimId);
+        clips.forEach(c => c.video.pause());
+        document.getElementById('btnPreview').textContent = '▶ Testar Prévia';
+        drawStaticFrame();
+        return;
+      }
+      isPlayingPreview = true;
+      document.getElementById('btnPreview').textContent = '⏹ Parar Prévia';
+      playSequence(false);
+    });
+
+    // --- RENDERIZAÇÃO FINAL E DOWNLOAD ---
+    document.getElementById('btnRender').addEventListener('click', async () => {
+      const renderStatus = document.getElementById('renderStatus');
+      if (clips.length === 0) {
+        renderStatus.textContent = '⚠️ Selecione pelo menos 1 vídeo da galeria primeiro!';
+        return;
+      }
+      if (isPlayingPreview) {
+        isPlayingPreview = false;
+        cancelAnimationFrame(previewAnimId);
+      }
+
+      const btnRender = document.getElementById('btnRender');
+      btnRender.disabled = true;
+      renderStatus.textContent = '🎬 Renderizando seu Reels 9:16... Não feche a tela.';
+
+      const stream = canvas.captureStream(30);
+      let audioCtx = null;
+      let beatEl = null;
+
+      if (audioFile) {
+        try {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          beatEl = new Audio(URL.createObjectURL(audioFile));
+          beatEl.crossOrigin = 'anonymous';
+          const source = audioCtx.createMediaElementSource(beatEl);
+          const dest = audioCtx.createMediaStreamDestination();
+          source.connect(dest);
+          source.connect(audioCtx.destination);
+          dest.stream.getAudioTracks().forEach(track => stream.addTrack(track));
+          await beatEl.play();
+        } catch (e) {
+          console.warn('Áudio opcional ignorado:', e);
+        }
+      }
+
+      const mimeType = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : 'video/webm';
+      const recorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 5000000 });
+      const chunks = [];
+      recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+
+      recorder.onstop = () => {
+        if (beatEl) beatEl.pause();
+        if (audioCtx) audioCtx.close();
+        const blob = new Blob(chunks, { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `tattooreels-guarulhos.${mimeType === 'video/mp4' ? 'mp4' : 'webm'}`;
+        a.click();
+        btnRender.disabled = false;
+        renderStatus.textContent = '✅ Vídeo pronto e baixado na sua galeria!';
+        renderStatus.className = 'status status-ok';
+        drawStaticFrame();
+      };
+
+      recorder.start();
+      await playSequence(true);
+      recorder.stop();
+    });
+
+    function playSequence(isExport) {
+      return new Promise(async (resolve) => {
+        const cutSec = parseFloat(document.getElementById('cutSpeed').value);
+        const totalDuration = clips.length * cutSec;
+
+        for (let i = 0; i < clips.length; i++) {
+          if (!isExport && !isPlayingPreview) break;
+          const v = clips[i].video;
+          v.currentTime = 0;
+          await v.play();
+          const startTime = performance.now();
+
+          await new Promise(stepDone => {
+            function frame(now) {
+              if (!isExport && !isPlayingPreview) { v.pause(); stepDone(); return; }
+              const elapsed = (now - startTime) / 1000;
+              if (elapsed >= cutSec || v.ended) {
+                v.pause();
+                stepDone();
+                return;
+              }
+              const segProgress = elapsed / cutSec;
+              const globalProgress = ((i * cutSec) + elapsed) / totalDuration;
+              const zoom = 1 + (segProgress * 0.07);
+              const flash = elapsed < 0.14 ? (1 - elapsed / 0.14) * 0.45 : 0;
+
+              ctx.fillStyle = '#050507';
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+              drawVideoCover(v, zoom);
+              drawOverlays(globalProgress, flash);
+
+              previewAnimId = requestAnimationFrame(frame);
+            }
+            previewAnimId = requestAnimationFrame(frame);
+          });
+        }
+
+        if (!isExport && isPlayingPreview) {
+          playSequence(false); // Loop na prévia
+        } else {
+          resolve();
+        }
+      });
+    }
+
+    drawStaticFrame();
+  </script>
 </body>
 </html>
-<!-- FIM DO CODIGO -->
