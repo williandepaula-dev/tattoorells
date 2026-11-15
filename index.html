@@ -34,8 +34,8 @@
     .row { display: flex; gap: 8px; align-items: center; }
     .slider-head { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 12px; color: #d1d5db; }
     .slider-val { color: #fbbf24; font-weight: 700; }
-    .dsp-box { background: #0b0b0f; border: 1px solid #262635; border-radius: 10px; padding: 10px 12px; margin-top: 10px; }
-    .sub-box { background: #0b0b0f; border: 1px solid #262635; border-radius: 10px; padding: 10px 12px; margin-top: 10px; }
+    .sub-box { background: #0b0b0f; border: 1px solid #262635; border-radius: 10px; padding: 11px 12px; margin-top: 10px; }
+    .sample-quote { font-size: 11px; color: #9ca3af; background: #15151d; padding: 8px; border-radius: 8px; border-left: 3px solid #7c3aed; margin: 6px 0 8px 0; line-height: 1.4; }
     .clip-list { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
     .clip-item { display: flex; justify-content: space-between; align-items: center; background: #0b0b0f; border: 1px solid #262635; padding: 8px 10px; border-radius: 8px; font-size: 12px; }
     .clip-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px; }
@@ -95,72 +95,73 @@
     <div id="aiStatus" class="status"></div>
   </div>
 
-  <!-- 3. VOZ HUMANIZADA, AJUSTES VOCAIS E NARRAÇÃO -->
+  <!-- 3. VOZ MASCULINA DEFINIDA E CLONAGEM DA SUA VOZ -->
   <div class="card">
-    <h2>3. Voz do Vídeo e Ajustes de Humanização</h2>
+    <h2>3. Sua Voz Masculina e Narração do Vídeo</h2>
 
     <label>Roteiro da Narração (vira legenda sincronizada):</label>
     <textarea id="narrationText">Se liga nos detalhes desse trabalho feito aqui em Guarulhos. Quer um orçamento exclusivo? Chama no WhatsApp!</textarea>
 
-    <!-- OPÇÃO A: GRAVAR PRÓPRIA VOZ -->
+    <!-- CLONAGEM DIRETA DA SUA VOZ / LOCUTOR HOMEM -->
     <div class="sub-box">
-      <label style="color: #fbbf24; font-weight: 700;">Opção A: Usar Sua Própria Voz (Vai no MP4)</label>
-      <button type="button" class="btn btn-amber" id="btnRecordOwn">🎙️ Gravar Minha Narração</button>
-    </div>
-
-    <!-- OPÇÃO B: VOZ NEURAL HUMANIZADA / CLONADA (ELEVENLABS) -->
-    <div class="sub-box">
-      <label style="color: #a78bfa; font-weight: 700;">Opção B: Voz Neural Humanizada / Clonada (Vai no MP4)</label>
+      <label style="color: #a78bfa; font-weight: 700;">🧬 Voz Igual à Sua (Clonagem + Locutor Homem):</label>
       <div class="row" style="margin-top: 6px;">
-        <input type="password" id="elevenKey" placeholder="API Key ElevenLabs (opcional)">
+        <input type="password" id="elevenKey" placeholder="Cole sua API Key ElevenLabs">
         <button type="button" class="btn btn-dark" style="width: auto; padding: 11px 12px;" id="btnSaveEleven">Salvar</button>
       </div>
       <div id="elevenStatus" class="status"></div>
 
-      <label>Escolha o Locutor Humanizado:</label>
-      <select id="elevenVoiceSelect">
-        <option value="pNInz6obpgDQGcFmaJgB">🎙️ Locutor Grave e Marcante (Adam)</option>
-        <option value="TxGEqnHWrfWFTfGW9XjX">🔥 Locutor Jovem Dinâmico (Josh)</option>
-        <option value="EXAVITQu4vr4xnSDxMaL">✨ Voz Feminina Natural (Bella)</option>
-        <option value="custom">🧬 Minha Voz Clonada (Colar ID)</option>
+      <!-- GRAVADOR DE 15 SEGUNDOS PARA CLONAR A PRÓPRIA VOZ -->
+      <div style="margin-top: 10px; border-top: 1px solid #262635; padding-top: 10px;">
+        <div style="font-size: 12px; font-weight: 700; color: #f3f4f6;">Clonar Minha Voz em 1 Clique (faça só 1 vez):</div>
+        <div class="sample-quote">Leia falando natural por 15s: <em>"Fala galera de Guarulhos, aqui é o Willian. Vou mostrar os detalhes dessa tatuagem feita hoje aqui no estúdio. Se curtiu o trabalho, chama no WhatsApp para fazer seu orçamento."</em></div>
+        <button type="button" class="btn btn-purple" id="btnCloneVoice">🧬 Gravar 15s para Clonar Minha Voz</button>
+        <div id="cloneStatus" class="status"></div>
+      </div>
+
+      <label style="margin-top: 12px;">Voz Masculina Ativa no Vídeo:</label>
+      <select id="maleVoiceSelect">
+        <option value="pNInz6obpgDQGcFmaJgB">🎙️ Locutor Homem Grave (Padrão)</option>
+        <option value="TxGEqnHWrfWFTfGW9XjX">🔥 Locutor Homem Jovem (Dinâmico)</option>
+        <option value="VR6AewLTigWG4xSOukaG">🔊 Locutor Homem Pesado (Forte)</option>
       </select>
-      <input type="text" id="customVoiceId" class="hidden" style="margin-top: 6px;" placeholder="Cole o Voice ID da sua voz clonada">
-      <button type="button" class="btn btn-purple" style="margin-top: 8px;" id="btnGenEleven">✨ Gerar Voz Neural no Vídeo</button>
+
+      <button type="button" class="btn btn-green" style="margin-top: 8px; padding: 11px; font-size: 13px;" id="btnGenMaleVoice">🗣️ Gerar Narração com Essa Voz</button>
     </div>
 
-    <!-- MESA DE SOM VOCAL (TIRA EFEITO ROBÓTICO + ENGROSSA) -->
-    <div class="dsp-box">
-      <div style="font-size: 12px; font-weight: 700; color: #4ade80;">🎛️ Ajustes Vocais (Filtro de Estúdio):</div>
+    <!-- OPÇÃO DIRETA: GRAVAR SUA PRÓPRIA VOZ SEM IA -->
+    <div class="sub-box">
+      <label style="color: #fbbf24; font-weight: 700;">🎙️ Ou Grave Você Mesmo Lendo o Roteiro (Sem API):</label>
+      <button type="button" class="btn btn-amber" id="btnRecordOwn">🎙️ Gravar Minha Própria Voz Agora</button>
+    </div>
+
+    <!-- MESA DE SOM VOCAL (CALIBRADA PARA VOZ DE HOMEM NATURAL) -->
+    <div class="sub-box">
+      <div style="font-size: 12px; font-weight: 700; color: #4ade80;">🎛️ Regulagem de Voz Masculina (Estúdio):</div>
 
       <div class="slider-head">
         <span>Velocidade da Fala:</span>
-        <span class="slider-val" id="speedVal">0.96x (Natural)</span>
+        <span class="slider-val" id="speedVal">0.95x (Natural)</span>
       </div>
-      <input type="range" id="speedSlider" min="0.80" max="1.25" step="0.02" value="0.96">
+      <input type="range" id="speedSlider" min="0.80" max="1.20" step="0.01" value="0.95">
 
       <div class="slider-head">
-        <span>Engrossar / Tom da Voz:</span>
-        <span class="slider-val" id="pitchVal">-5% (Mais Grossa)</span>
+        <span>Engrossar Tom da Voz:</span>
+        <span class="slider-val" id="pitchVal">-6% (Voz Grossa)</span>
       </div>
-      <input type="range" id="pitchSlider" min="-15" max="10" step="1" value="-5">
+      <input type="range" id="pitchSlider" min="-15" max="5" step="1" value="-6">
 
       <div class="slider-head">
-        <span>Grave de Locutor (Tira som fino/robô):</span>
-        <span class="slider-val" id="bassVal">+6 dB</span>
+        <span>Peso Grave de Homem (EQ):</span>
+        <span class="slider-val" id="bassVal">+7 dB</span>
       </div>
-      <input type="range" id="bassSlider" min="0" max="10" step="1" value="6">
+      <input type="range" id="bassSlider" min="0" max="10" step="1" value="7">
 
-      <button type="button" class="btn btn-dark" style="margin-top: 10px;" id="btnTestVocal">🔊 Ouvir Voz com Esses Ajustes</button>
+      <div class="row" style="margin-top: 10px;">
+        <button type="button" class="btn btn-dark" id="btnTestVocal">🔊 Ouvir Voz do Vídeo</button>
+        <button type="button" class="btn btn-dark" id="btnTestAndroid">📱 Prévia Rápida Homem</button>
+      </div>
       <div id="vocalStatus" class="status"></div>
-    </div>
-
-    <!-- OPÇÃO C: VOZES GRATUITAS DO CELULAR (SÓ PRÉVIA) -->
-    <div class="sub-box">
-      <label style="color: #9ca3af;">Opção C: Vozes do Celular (Apenas Prévia):</label>
-      <div class="row">
-        <select id="androidVoiceSelect"></select>
-        <button type="button" class="btn btn-dark" style="width: auto; padding: 11px 12px;" id="btnTestAndroid">Ouvir</button>
-      </div>
     </div>
 
     <label>Cards Informativos (aparecem a cada corte do vídeo):</label>
@@ -208,11 +209,11 @@
     const ctx = canvas.getContext('2d');
     let clips = [];
     let audioFile = null;
-    let activeVocalBlob = null; // Guarda sua voz gravada OU o áudio da voz neural
+    let activeVocalBlob = null;
     let isPlayingPreview = false;
     let previewAnimId = null;
 
-    // --- SALVAR CHAVES (GROQ E ELEVENLABS) ---
+    // --- CARREGAR CHAVES E VOZ CLONADA SALVA ---
     const groqKeyInput = document.getElementById('groqKey');
     const keyStatus = document.getElementById('keyStatus');
     if (localStorage.getItem('groq_api_key')) {
@@ -230,6 +231,9 @@
 
     const elevenKeyInput = document.getElementById('elevenKey');
     const elevenStatus = document.getElementById('elevenStatus');
+    const maleVoiceSelect = document.getElementById('maleVoiceSelect');
+    const cloneStatus = document.getElementById('cloneStatus');
+
     if (localStorage.getItem('eleven_api_key')) {
       elevenKeyInput.value = localStorage.getItem('eleven_api_key');
       elevenStatus.textContent = '✅ Chave ElevenLabs salva!';
@@ -243,35 +247,174 @@
       elevenStatus.className = 'status status-ok';
     });
 
-    document.getElementById('elevenVoiceSelect').addEventListener('change', (e) => {
-      document.getElementById('customVoiceId').classList.toggle('hidden', e.target.value !== 'custom');
-    });
+    function loadClonedVoiceOption() {
+      const clonedId = localStorage.getItem('cloned_voice_id');
+      if (clonedId) {
+        let opt = maleVoiceSelect.querySelector('option[data-cloned="true"]');
+        if (!opt) {
+          opt = document.createElement('option');
+          opt.setAttribute('data-cloned', 'true');
+          maleVoiceSelect.prepend(opt);
+        }
+        opt.value = clonedId;
+        opt.textContent = '🧬 Minha Voz Clonada (Willian - Padrão)';
+        maleVoiceSelect.value = clonedId;
+        cloneStatus.textContent = '✅ Sua voz clonada já está salva e selecionada!';
+        cloneStatus.className = 'status status-ok';
+      }
+    }
+    loadClonedVoiceOption();
 
-    // --- SLIDERS VOCAIS ---
+    // --- SLIDERS VOCAIS (CALIBRADOS PARA VOZ MASCULINA) ---
     const speedSlider = document.getElementById('speedSlider');
     const pitchSlider = document.getElementById('pitchSlider');
     const bassSlider = document.getElementById('bassSlider');
 
     speedSlider.addEventListener('input', () => {
-      const v = parseFloat(speedSlider.value).toFixed(2);
-      document.getElementById('speedVal').textContent = `${v}x`;
+      document.getElementById('speedVal').textContent = `${parseFloat(speedSlider.value).toFixed(2)}x`;
     });
     pitchSlider.addEventListener('input', () => {
       const v = parseInt(pitchSlider.value, 10);
-      document.getElementById('pitchVal').textContent = v < 0 ? `${v}% (Mais Grossa)` : v > 0 ? `+${v}% (Mais Aguda)` : '0% (Normal)';
+      document.getElementById('pitchVal').textContent = v < 0 ? `${v}% (Voz Grossa)` : v > 0 ? `+${v}%` : '0% (Normal)';
     });
     bassSlider.addEventListener('input', () => {
       document.getElementById('bassVal').textContent = `+${bassSlider.value} dB`;
     });
 
-    // --- CADEIA DE ÁUDIO DE ESTÚDIO (WEB AUDIO API) ---
+    // --- CLONAR A PRÓPRIA VOZ DENTRO DO APP ---
+    let cloneRecorder = null;
+    let cloneChunks = [];
+    let isCloning = false;
+    const btnCloneVoice = document.getElementById('btnCloneVoice');
+
+    btnCloneVoice.addEventListener('click', async () => {
+      const apiKey = elevenKeyInput.value.trim();
+      if (!apiKey) {
+        cloneStatus.textContent = '⚠️ Cole e salve sua API Key da ElevenLabs acima primeiro.';
+        return;
+      }
+
+      if (!isCloning) {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          cloneChunks = [];
+          cloneRecorder = new MediaRecorder(stream);
+          cloneRecorder.ondataavailable = e => { if (e.data.size > 0) cloneChunks.push(e.data); };
+          cloneRecorder.onstop = async () => {
+            stream.getTracks().forEach(t => t.stop());
+            const sampleBlob = new Blob(cloneChunks, { type: cloneRecorder.mimeType || 'audio/webm' });
+            await uploadVoiceClone(sampleBlob, apiKey);
+          };
+          cloneRecorder.start();
+          isCloning = true;
+          btnCloneVoice.textContent = '⏹️ Gravando Amostra... Toque para Finalizar';
+          btnCloneVoice.className = 'btn btn-recording';
+          cloneStatus.textContent = '🎙️ Leia a frase acima falando normal por uns 15 segundos...';
+        } catch (err) {
+          cloneStatus.textContent = '❌ Permissão de microfone negada.';
+        }
+      } else {
+        cloneRecorder.stop();
+        isCloning = false;
+        btnCloneVoice.textContent = '🧬 Gravar 15s para Clonar Minha Voz';
+        btnCloneVoice.className = 'btn btn-purple';
+        cloneStatus.textContent = '⏳ Criando o clone da sua voz...';
+      }
+    });
+
+    async function uploadVoiceClone(sampleBlob, apiKey) {
+      try {
+        const formData = new FormData();
+        formData.append('name', 'Voz Willian Tattoo Studio');
+        formData.append('files', sampleBlob, 'amostra_voz.webm');
+        formData.append('description', 'Voz masculina brasileira natural de tatuador');
+
+        const res = await fetch('https://api.elevenlabs.io/v1/voices/add', {
+          method: 'POST',
+          headers: { 'xi-api-key': apiKey },
+          body: formData
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail?.message || `Erro HTTP ${res.status}`);
+
+        localStorage.setItem('cloned_voice_id', data.voice_id);
+        loadClonedVoiceOption();
+        cloneStatus.textContent = '✅ Voz clonada com sucesso! Agora toque em "Gerar Narração com Essa Voz".';
+        cloneStatus.className = 'status status-ok';
+      } catch (err) {
+        cloneStatus.textContent = `❌ Erro ao clonar voz: ${err.message}`;
+        cloneStatus.className = 'status';
+      }
+    }
+
+    // --- GERAR ÁUDIO COM A VOZ MASCULINA / CLONADA ---
+    async function generateMaleNeuralAudio() {
+      const apiKey = elevenKeyInput.value.trim();
+      const text = document.getElementById('narrationText').value.trim();
+      const voiceId = maleVoiceSelect.value;
+
+      if (!apiKey) {
+        elevenStatus.textContent = '⚠️ Cole sua API Key da ElevenLabs acima ou grave sua voz no botão amarelo.';
+        return false;
+      }
+      if (!text) {
+        elevenStatus.textContent = '⚠️ Escreva ou gere o roteiro acima primeiro.';
+        return false;
+      }
+
+      const btn = document.getElementById('btnGenMaleVoice');
+      btn.disabled = true;
+      elevenStatus.textContent = '⏳ Gerando voz masculina no roteiro...';
+
+      try {
+        const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+          method: 'POST',
+          headers: {
+            'xi-api-key': apiKey,
+            'Content-Type': 'application/json',
+            'Accept': 'audio/mpeg'
+          },
+          body: JSON.stringify({
+            text,
+            model_id: 'eleven_multilingual_v2',
+            voice_settings: {
+              stability: 0.50,
+              similarity_boost: 0.85,
+              style: 0.30,
+              use_speaker_boost: true
+            }
+          })
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail?.message || `Erro HTTP ${res.status}`);
+        }
+
+        activeVocalBlob = await res.blob();
+        elevenStatus.textContent = '✅ Narração masculina gerada e pronta para o vídeo!';
+        elevenStatus.className = 'status status-ok';
+        playActiveVocal();
+        return true;
+      } catch (err) {
+        elevenStatus.textContent = `❌ Erro ElevenLabs: ${err.message}`;
+        elevenStatus.className = 'status';
+        return false;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    document.getElementById('btnGenMaleVoice').addEventListener('click', generateMaleNeuralAudio);
+
+    // --- CADEIA DE ESTÚDIO (ENGROSSA E TIRA TIMBRE FINO) ---
     function configureVocalElement(audioEl) {
       const speed = parseFloat(speedSlider.value);
       const pitchPct = parseInt(pitchSlider.value, 10);
       if (pitchPct !== 0) {
         audioEl.preservesPitch = false;
         audioEl.webkitPreservesPitch = false;
-        audioEl.playbackRate = Math.max(0.65, Math.min(1.45, speed * (1 + pitchPct / 100)));
+        audioEl.playbackRate = Math.max(0.65, Math.min(1.40, speed * (1 + pitchPct / 100)));
       } else {
         audioEl.preservesPitch = true;
         audioEl.webkitPreservesPitch = true;
@@ -279,34 +422,29 @@
       }
     }
 
-    function connectStudioVocalChain(audioCtx, sourceNode, destinationNode) {
+    function buildStudioVocalChain(audioCtx, sourceNode) {
       const bassGainDb = parseFloat(bassSlider.value);
 
-      // 1. Corte de ruído grave abaixo de 85Hz
       const highpass = audioCtx.createBiquadFilter();
       highpass.type = 'highpass';
-      highpass.frequency.value = 85;
+      highpass.frequency.value = 80;
 
-      // 2. Peso de locutor (Grave 160Hz)
       const lowShelf = audioCtx.createBiquadFilter();
       lowShelf.type = 'lowshelf';
-      lowShelf.frequency.value = 160;
+      lowShelf.frequency.value = 155;
       lowShelf.gain.value = bassGainDb;
 
-      // 3. Tira timbre fino/anasado/robótico (2.4kHz)
       const antiRobot = audioCtx.createBiquadFilter();
       antiRobot.type = 'peaking';
-      antiRobot.frequency.value = 2400;
+      antiRobot.frequency.value = 2350;
       antiRobot.Q.value = 1.4;
-      antiRobot.gain.value = -3.5;
+      antiRobot.gain.value = -4.0;
 
-      // 4. Clareza e presença na voz (6.5kHz)
       const air = audioCtx.createBiquadFilter();
       air.type = 'highshelf';
       air.frequency.value = 6500;
-      air.gain.value = 2.5;
+      air.gain.value = 2.0;
 
-      // 5. Compressor vocal para nivelar o volume
       const compressor = audioCtx.createDynamicsCompressor();
       compressor.threshold.value = -20;
       compressor.knee.value = 12;
@@ -319,14 +457,13 @@
       lowShelf.connect(antiRobot);
       antiRobot.connect(air);
       air.connect(compressor);
-      compressor.connect(destinationNode);
+      return compressor;
     }
 
-    // --- TESTAR ÁUDIO VOCAL COM FILTRO DE ESTÚDIO ---
     const vocalStatus = document.getElementById('vocalStatus');
-    document.getElementById('btnTestVocal').addEventListener('click', async () => {
+    async function playActiveVocal() {
       if (!activeVocalBlob) {
-        vocalStatus.textContent = '⚠️ Grave sua voz na Opção A ou gere uma voz na Opção B primeiro.';
+        vocalStatus.textContent = '⚠️ Gere a voz masculina acima ou grave no botão amarelo primeiro.';
         return;
       }
       try {
@@ -334,17 +471,48 @@
         const testEl = new Audio(URL.createObjectURL(activeVocalBlob));
         configureVocalElement(testEl);
         const src = testCtx.createMediaElementSource(testEl);
-        connectStudioVocalChain(testCtx, src, testCtx.destination);
+        const outNode = buildStudioVocalChain(testCtx, src);
+        outNode.connect(testCtx.destination);
         testEl.onended = () => testCtx.close();
         await testEl.play();
-        vocalStatus.textContent = '🔊 Tocando voz com filtro de estúdio aplicado!';
+        vocalStatus.textContent = '🔊 Reproduzindo voz masculina regulada!';
         vocalStatus.className = 'status status-ok';
       } catch (e) {
         vocalStatus.textContent = '❌ Erro ao reproduzir áudio.';
       }
-    });
+    }
 
-    // --- OPÇÃO A: GRAVAR PRÓPRIA VOZ ---
+    document.getElementById('btnTestVocal').addEventListener('click', playActiveVocal);
+
+    // --- PRÉVIA RÁPIDA FORÇADA PARA VOZ DE HOMEM (SEM MULHER) ---
+    function speakMaleAndroidVoice() {
+      const text = document.getElementById('narrationText').value.trim();
+      if (!text || !('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'pt-BR';
+      utter.rate = parseFloat(speedSlider.value);
+
+      const voices = window.speechSynthesis.getVoices().filter(v => v.lang.includes('pt'));
+      // Prioriza qualquer voz masculina disponível e evita nomes femininos
+      const maleVoice =
+        voices.find(v => /male|homem|daniel|ricardo|felipe|thiago|antonio|pte|ptb/i.test(v.name)) ||
+        voices.find(v => !/female|mulher|francisca|luciana|camila|vitoria|ptd|ptf/i.test(v.name)) ||
+        voices[0];
+
+      if (maleVoice) utter.voice = maleVoice;
+      // Abaixa o pitch base para garantir timbre masculino grave mesmo se o Android só tiver 1 motor
+      const pitchPct = parseInt(pitchSlider.value, 10);
+      utter.pitch = Math.max(0.55, Math.min(0.95, 0.78 + (pitchPct / 45)));
+      window.speechSynthesis.speak(utter);
+    }
+
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+    }
+    document.getElementById('btnTestAndroid').addEventListener('click', speakMaleAndroidVoice);
+
+    // --- GRAVAR PRÓPRIA VOZ LENDO O ROTEIRO ---
     let voRecorder = null;
     let voChunks = [];
     let isRecordingVO = false;
@@ -360,127 +528,26 @@
           voRecorder.onstop = () => {
             stream.getTracks().forEach(t => t.stop());
             activeVocalBlob = new Blob(voChunks, { type: voRecorder.mimeType || 'audio/webm' });
-            vocalStatus.textContent = '✅ Sua voz foi gravada! Clique em "Ouvir Voz com Esses Ajustes" para testar.';
+            vocalStatus.textContent = '✅ Sua voz foi gravada e regulada! Toque em "Ouvir Voz do Vídeo".';
             vocalStatus.className = 'status status-ok';
           };
           voRecorder.start();
           isRecordingVO = true;
           btnRecordOwn.textContent = '⏹️ Parar Gravação';
           btnRecordOwn.className = 'btn btn-recording';
-          vocalStatus.textContent = '🎙️ Leia o roteiro acima com calma...';
+          vocalStatus.textContent = '🎙️ Leia o roteiro acima agora...';
         } catch (err) {
           vocalStatus.textContent = '❌ Permissão de microfone negada.';
         }
       } else {
         voRecorder.stop();
         isRecordingVO = false;
-        btnRecordOwn.textContent = '🎙️ Regravar Minha Narração';
+        btnRecordOwn.textContent = '🎙️ Regravar Minha Própria Voz';
         btnRecordOwn.className = 'btn btn-amber';
       }
     });
 
-    // --- OPÇÃO B: GERAR VOZ NEURAL HUMANIZADA (ELEVENLABS) ---
-    document.getElementById('btnGenEleven').addEventListener('click', async () => {
-      const apiKey = elevenKeyInput.value.trim();
-      const text = document.getElementById('narrationText').value.trim();
-      const selectVal = document.getElementById('elevenVoiceSelect').value;
-      const voiceId = selectVal === 'custom' ? document.getElementById('customVoiceId').value.trim() : selectVal;
-
-      if (!apiKey) {
-        elevenStatus.textContent = '⚠️ Cole e salve sua API Key gratuita da ElevenLabs acima.';
-        return;
-      }
-      if (!voiceId) {
-        elevenStatus.textContent = '⚠️ Cole o ID da sua voz clonada.';
-        return;
-      }
-      if (!text) {
-        elevenStatus.textContent = '⚠️ Escreva ou gere um roteiro acima primeiro.';
-        return;
-      }
-
-      const btn = document.getElementById('btnGenEleven');
-      btn.disabled = true;
-      elevenStatus.textContent = '⏳ Gerando voz humanizada de estúdio...';
-
-      try {
-        const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-          method: 'POST',
-          headers: {
-            'xi-api-key': apiKey,
-            'Content-Type': 'application/json',
-            'Accept': 'audio/mpeg'
-          },
-          body: JSON.stringify({
-            text,
-            model_id: 'eleven_multilingual_v2',
-            voice_settings: {
-              stability: 0.45,
-              similarity_boost: 0.80,
-              style: 0.35,
-              use_speaker_boost: true
-            }
-          })
-        });
-
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.detail?.message || `Erro HTTP ${res.status}`);
-        }
-
-        activeVocalBlob = await res.blob();
-        elevenStatus.textContent = '✅ Voz humanizada pronta e carregada no vídeo!';
-        elevenStatus.className = 'status status-ok';
-        document.getElementById('btnTestVocal').click();
-      } catch (err) {
-        elevenStatus.textContent = `❌ Erro ElevenLabs: ${err.message}`;
-        elevenStatus.className = 'status';
-      } finally {
-        btn.disabled = false;
-      }
-    });
-
-    // --- OPÇÃO C: VOZES NATIVAS DO ANDROID ---
-    const androidVoiceSelect = document.getElementById('androidVoiceSelect');
-    function loadAndroidVoices() {
-      if (!('speechSynthesis' in window)) return;
-      const voices = window.speechSynthesis.getVoices().filter(v => v.lang.includes('pt'));
-      androidVoiceSelect.innerHTML = '';
-      if (voices.length === 0) {
-        const opt = document.createElement('option');
-        opt.textContent = 'Voz Padrão PT-BR';
-        androidVoiceSelect.appendChild(opt);
-        return;
-      }
-      voices.forEach((v, idx) => {
-        const opt = document.createElement('option');
-        opt.value = v.name;
-        opt.textContent = `Voz ${idx + 1}: ${v.name.slice(0, 24)}`;
-        androidVoiceSelect.appendChild(opt);
-      });
-    }
-    if ('speechSynthesis' in window) {
-      loadAndroidVoices();
-      window.speechSynthesis.onvoiceschanged = loadAndroidVoices;
-    }
-
-    function speakAndroidVoice() {
-      const text = document.getElementById('narrationText').value.trim();
-      if (!text || !('speechSynthesis' in window)) return;
-      window.speechSynthesis.cancel();
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.lang = 'pt-BR';
-      utter.rate = parseFloat(speedSlider.value);
-      const pitchPct = parseInt(pitchSlider.value, 10);
-      utter.pitch = Math.max(0.6, Math.min(1.4, 1 + (pitchPct / 40)));
-      const chosen = window.speechSynthesis.getVoices().find(v => v.name === androidVoiceSelect.value);
-      if (chosen) utter.voice = chosen;
-      window.speechSynthesis.speak(utter);
-    }
-
-    document.getElementById('btnTestAndroid').addEventListener('click', speakAndroidVoice);
-
-    // --- MICROFONE WHISPER + IA GROQ (CRIA ROTEIRO E TÓPICOS) ---
+    // --- MICROFONE WHISPER + IA GROQ ---
     let mediaRecorder = null;
     let audioChunks = [];
     let isRecording = false;
@@ -552,7 +619,7 @@
 
     async function generateReelsDirector(promptText, apiKey) {
       try {
-        aiStatus.textContent = `✍️ Criando roteiro e tópicos para: "${promptText}"...`;
+        aiStatus.textContent = `✍️ Criando roteiro masculino e tópicos para: "${promptText}"...`;
 
         const modelsRes = await fetch('https://api.groq.com/openai/v1/models', {
           headers: { 'Authorization': `Bearer ${apiKey}` }
@@ -583,7 +650,7 @@
             messages: [
               {
                 role: 'system',
-                content: 'Você é diretor de vídeos virais para estúdio de tatuagem em Guarulhos - SP. Responda APENAS com um objeto JSON válido (sem markdown) com estas 4 chaves: "gancho" (frase curta em MAIÚSCULAS até 34 caracteres + 1 emoji para o topo), "narracao" (texto de 15 a 24 palavras em português natural e falado para narrar o vídeo de 8 segundos com pausas naturais usando vírgulas e chamar para orçamento no WhatsApp), "topicos" (array com exatamente 3 strings curtas em MAIÚSCULAS com emoji, até 28 caracteres cada, destacando técnica, detalhes e Guarulhos), e "legenda" (legenda completa para Instagram Reels com CTA para WhatsApp e hashtags de Guarulhos).'
+                content: 'Você é diretor de vídeos virais para um tatuador homem em Guarulhos - SP. Responda APENAS com um objeto JSON válido (sem markdown) com estas 4 chaves: "gancho" (frase curta em MAIÚSCULAS até 34 caracteres + 1 emoji para o topo), "narracao" (texto de 15 a 24 palavras em primeira pessoa masculina, natural e firme como um tatuador falando no Instagram, com vírgulas para pausas naturais e chamada para orçamento no WhatsApp), "topicos" (array com exatamente 3 strings curtas em MAIÚSCULAS com emoji, até 28 caracteres cada), e "legenda" (legenda completa para Instagram Reels com CTA para WhatsApp e hashtags de Guarulhos).'
               },
               {
                 role: 'user',
@@ -614,7 +681,12 @@
         }
 
         drawStaticFrame();
-        aiStatus.textContent = '✅ Roteiro pronto! Agora grave sua voz na Opção A ou gere na Opção B.';
+        if (elevenKeyInput.value.trim()) {
+          await generateMaleNeuralAudio();
+        } else {
+          speakMaleAndroidVoice();
+        }
+        aiStatus.textContent = '✅ Roteiro masculino pronto!';
         aiStatus.className = 'status status-ok';
       } catch (err) {
         aiStatus.textContent = `❌ Erro na Groq: ${err.message}`;
@@ -874,10 +946,11 @@
         previewVocalEl = new Audio(URL.createObjectURL(activeVocalBlob));
         configureVocalElement(previewVocalEl);
         const src = previewCtx.createMediaElementSource(previewVocalEl);
-        connectStudioVocalChain(previewCtx, src, previewCtx.destination);
+        const outNode = buildStudioVocalChain(previewCtx, src);
+        outNode.connect(previewCtx.destination);
         await previewVocalEl.play();
       } else {
-        speakAndroidVoice();
+        speakMaleAndroidVoice();
       }
 
       playSequence(false);
@@ -900,7 +973,7 @@
 
       const btnRender = document.getElementById('btnRender');
       btnRender.disabled = true;
-      renderStatus.textContent = '🎬 Renderizando seu Reels 9:16 com voz de estúdio...';
+      renderStatus.textContent = '🎬 Renderizando seu Reels 9:16 com voz masculina...';
 
       const stream = canvas.captureStream(30);
       let audioCtx = null;
@@ -928,8 +1001,9 @@
             voEl = new Audio(URL.createObjectURL(activeVocalBlob));
             configureVocalElement(voEl);
             const voSrc = audioCtx.createMediaElementSource(voEl);
-            connectStudioVocalChain(audioCtx, voSrc, dest);
-            connectStudioVocalChain(audioCtx, voSrc, audioCtx.destination);
+            const outNode = buildStudioVocalChain(audioCtx, voSrc);
+            outNode.connect(dest);
+            outNode.connect(audioCtx.destination);
             await voEl.play();
           }
 
@@ -955,7 +1029,7 @@
         a.download = `tattooreels-guarulhos.${mimeType === 'video/mp4' ? 'mp4' : 'webm'}`;
         a.click();
         btnRender.disabled = false;
-        renderStatus.textContent = '✅ Vídeo pronto com voz de estúdio e baixado na galeria!';
+        renderStatus.textContent = '✅ Vídeo pronto com voz masculina e baixado na galeria!';
         renderStatus.className = 'status status-ok';
         drawStaticFrame();
       };
