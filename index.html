@@ -19,7 +19,8 @@
     label:first-of-type { margin-top: 0; }
     input[type="text"], input[type="password"], select, textarea { width: 100%; background: #0b0b0f; border: 1px solid #2e2e3e; color: #fff; padding: 11px 12px; border-radius: 10px; font-size: 14px; outline: none; }
     input:focus, select:focus, textarea:focus { border-color: #e11d48; }
-    input[type="range"] { width: 100%; accent-color: #e11d48; margin-top: 4px; }
+    input[type="range"] { width: 100%; accent-color: #e11d48; margin-top: 6px; touch-action: pan-y; height: 24px; }
+    input[type="range"]:disabled { opacity: 0.45; pointer-events: none; }
     textarea { resize: vertical; min-height: 82px; font-size: 13px; line-height: 1.4; }
     .btn { width: 100%; padding: 12px; border: none; border-radius: 10px; color: #fff; font-weight: 700; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity 0.2s; }
     .btn:active { opacity: 0.8; }
@@ -31,7 +32,10 @@
     .btn-amber { background: #d97706; }
     .btn-recording { background: #dc2626; animation: pulse 1.2s infinite; }
     .btn-dark { background: #262635; font-size: 12px; padding: 9px 10px; }
+    .btn-lock { background: #1f2937; border: 1px solid #374151; font-size: 11px; padding: 5px 9px; width: auto; }
+    .btn-lock.locked { background: rgba(22, 163, 74, 0.2); border-color: #16a34a; color: #4ade80; }
     .row { display: flex; gap: 8px; align-items: center; }
+    .between { display: flex; justify-content: space-between; align-items: center; }
     .slider-head { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; font-size: 12px; color: #d1d5db; }
     .slider-val { color: #fbbf24; font-weight: 700; }
     .sub-box { background: #0b0b0f; border: 1px solid #262635; border-radius: 10px; padding: 11px 12px; margin-top: 10px; }
@@ -135,13 +139,16 @@
       <button type="button" class="btn btn-amber" id="btnRecordOwn">🎙️ Gravar Minha Própria Voz Agora</button>
     </div>
 
-    <!-- MESA DE SOM VOCAL (CALIBRADA PARA VOZ DE HOMEM NATURAL) -->
+    <!-- MESA DE SOM VOCAL COM TRAVA DE TELA -->
     <div class="sub-box">
-      <div style="font-size: 12px; font-weight: 700; color: #4ade80;">🎛️ Regulagem de Voz Masculina (Estúdio):</div>
+      <div class="between">
+        <span style="font-size: 12px; font-weight: 700; color: #4ade80;">🎛️ Regulagem de Voz:</span>
+        <button type="button" class="btn btn-lock" id="btnLockSliders">🔓 Travar Ajustes</button>
+      </div>
 
       <div class="slider-head">
         <span>Velocidade da Fala:</span>
-        <span class="slider-val" id="speedVal">0.95x (Natural)</span>
+        <span class="slider-val" id="speedVal">0.95x</span>
       </div>
       <input type="range" id="speedSlider" min="0.80" max="1.20" step="0.01" value="0.95">
 
@@ -265,20 +272,52 @@
     }
     loadClonedVoiceOption();
 
-    // --- SLIDERS VOCAIS (CALIBRADOS PARA VOZ MASCULINA) ---
+    // --- SLIDERS VOCAIS COM TRAVA E MEMÓRIA ---
     const speedSlider = document.getElementById('speedSlider');
     const pitchSlider = document.getElementById('pitchSlider');
     const bassSlider = document.getElementById('bassSlider');
+    const btnLockSliders = document.getElementById('btnLockSliders');
+    let slidersLocked = localStorage.getItem('vocal_locked') === 'true';
+
+    if (localStorage.getItem('vocal_speed')) speedSlider.value = localStorage.getItem('vocal_speed');
+    if (localStorage.getItem('vocal_pitch')) pitchSlider.value = localStorage.getItem('vocal_pitch');
+    if (localStorage.getItem('vocal_bass')) bassSlider.value = localStorage.getItem('vocal_bass');
+
+    function updateSliderLabels() {
+      document.getElementById('speedVal').textContent = `${parseFloat(speedSlider.value).toFixed(2)}x`;
+      const p = parseInt(pitchSlider.value, 10);
+      document.getElementById('pitchVal').textContent = p < 0 ? `${p}% (Voz Grossa)` : p > 0 ? `+${p}%` : '0% (Normal)';
+      document.getElementById('bassVal').textContent = `+${bassSlider.value} dB`;
+    }
+
+    function applyLockState() {
+      speedSlider.disabled = slidersLocked;
+      pitchSlider.disabled = slidersLocked;
+      bassSlider.disabled = slidersLocked;
+      btnLockSliders.textContent = slidersLocked ? '🔒 Ajustes Travados' : '🔓 Travar Ajustes';
+      btnLockSliders.classList.toggle('locked', slidersLocked);
+    }
+
+    updateSliderLabels();
+    applyLockState();
+
+    btnLockSliders.addEventListener('click', () => {
+      slidersLocked = !slidersLocked;
+      localStorage.setItem('vocal_locked', slidersLocked);
+      applyLockState();
+    });
 
     speedSlider.addEventListener('input', () => {
-      document.getElementById('speedVal').textContent = `${parseFloat(speedSlider.value).toFixed(2)}x`;
+      localStorage.setItem('vocal_speed', speedSlider.value);
+      updateSliderLabels();
     });
     pitchSlider.addEventListener('input', () => {
-      const v = parseInt(pitchSlider.value, 10);
-      document.getElementById('pitchVal').textContent = v < 0 ? `${v}% (Voz Grossa)` : v > 0 ? `+${v}%` : '0% (Normal)';
+      localStorage.setItem('vocal_pitch', pitchSlider.value);
+      updateSliderLabels();
     });
     bassSlider.addEventListener('input', () => {
-      document.getElementById('bassVal').textContent = `+${bassSlider.value} dB`;
+      localStorage.setItem('vocal_bass', bassSlider.value);
+      updateSliderLabels();
     });
 
     // --- CLONAR A PRÓPRIA VOZ DENTRO DO APP ---
@@ -407,19 +446,26 @@
 
     document.getElementById('btnGenMaleVoice').addEventListener('click', generateMaleNeuralAudio);
 
-    // --- CADEIA DE ESTÚDIO (ENGROSSA E TIRA TIMBRE FINO) ---
-    function configureVocalElement(audioEl) {
+    // --- TRAVA DE TOM E VELOCIDADE NO CHROME ANDROID ---
+    function applyLockedVocalParams(audioEl) {
       const speed = parseFloat(speedSlider.value);
       const pitchPct = parseInt(pitchSlider.value, 10);
-      if (pitchPct !== 0) {
-        audioEl.preservesPitch = false;
-        audioEl.webkitPreservesPitch = false;
-        audioEl.playbackRate = Math.max(0.65, Math.min(1.40, speed * (1 + pitchPct / 100)));
-      } else {
-        audioEl.preservesPitch = true;
-        audioEl.webkitPreservesPitch = true;
-        audioEl.playbackRate = speed;
-      }
+      const targetRate = pitchPct !== 0
+        ? Math.max(0.65, Math.min(1.40, speed * (1 + pitchPct / 100)))
+        : speed;
+
+      audioEl.preservesPitch = (pitchPct === 0);
+      audioEl.webkitPreservesPitch = (pitchPct === 0);
+      audioEl.mozPreservesPitch = (pitchPct === 0);
+      audioEl.playbackRate = targetRate;
+    }
+
+    async function startLockedVocalPlayback(audioEl) {
+      applyLockedVocalParams(audioEl);
+      audioEl.addEventListener('loadedmetadata', () => applyLockedVocalParams(audioEl));
+      audioEl.addEventListener('playing', () => applyLockedVocalParams(audioEl));
+      await audioEl.play();
+      applyLockedVocalParams(audioEl);
     }
 
     function buildStudioVocalChain(audioCtx, sourceNode) {
@@ -469,13 +515,12 @@
       try {
         const testCtx = new (window.AudioContext || window.webkitAudioContext)();
         const testEl = new Audio(URL.createObjectURL(activeVocalBlob));
-        configureVocalElement(testEl);
         const src = testCtx.createMediaElementSource(testEl);
         const outNode = buildStudioVocalChain(testCtx, src);
         outNode.connect(testCtx.destination);
         testEl.onended = () => testCtx.close();
-        await testEl.play();
-        vocalStatus.textContent = '🔊 Reproduzindo voz masculina regulada!';
+        await startLockedVocalPlayback(testEl);
+        vocalStatus.textContent = '🔊 Reproduzindo voz masculina com tom travado!';
         vocalStatus.className = 'status status-ok';
       } catch (e) {
         vocalStatus.textContent = '❌ Erro ao reproduzir áudio.';
@@ -484,7 +529,26 @@
 
     document.getElementById('btnTestVocal').addEventListener('click', playActiveVocal);
 
-    // --- PRÉVIA RÁPIDA FORÇADA PARA VOZ DE HOMEM (SEM MULHER) ---
+    // --- PRÉVIA RÁPIDA COM VOZ MASCULINA FIXA (SEM ALTERNAR VOZES) ---
+    let lockedAndroidVoiceURI = null;
+    function getConsistentMaleVoice() {
+      if (!('speechSynthesis' in window)) return null;
+      const voices = window.speechSynthesis.getVoices()
+        .filter(v => v.lang.toLowerCase().includes('pt'))
+        .sort((a, b) => a.voiceURI.localeCompare(b.voiceURI));
+
+      if (voices.length === 0) return null;
+      if (lockedAndroidVoiceURI) {
+        const found = voices.find(v => v.voiceURI === lockedAndroidVoiceURI);
+        if (found) return found;
+      }
+      const chosen =
+        voices.find(v => /male|homem|daniel|ricardo|felipe|thiago|antonio|pte|ptb/i.test(v.name + v.voiceURI)) ||
+        voices[0];
+      lockedAndroidVoiceURI = chosen.voiceURI;
+      return chosen;
+    }
+
     function speakMaleAndroidVoice() {
       const text = document.getElementById('narrationText').value.trim();
       if (!text || !('speechSynthesis' in window)) return;
@@ -493,22 +557,16 @@
       utter.lang = 'pt-BR';
       utter.rate = parseFloat(speedSlider.value);
 
-      const voices = window.speechSynthesis.getVoices().filter(v => v.lang.includes('pt'));
-      // Prioriza qualquer voz masculina disponível e evita nomes femininos
-      const maleVoice =
-        voices.find(v => /male|homem|daniel|ricardo|felipe|thiago|antonio|pte|ptb/i.test(v.name)) ||
-        voices.find(v => !/female|mulher|francisca|luciana|camila|vitoria|ptd|ptf/i.test(v.name)) ||
-        voices[0];
-
+      const maleVoice = getConsistentMaleVoice();
       if (maleVoice) utter.voice = maleVoice;
-      // Abaixa o pitch base para garantir timbre masculino grave mesmo se o Android só tiver 1 motor
+
       const pitchPct = parseInt(pitchSlider.value, 10);
       utter.pitch = Math.max(0.55, Math.min(0.95, 0.78 + (pitchPct / 45)));
       window.speechSynthesis.speak(utter);
     }
 
     if ('speechSynthesis' in window) {
-      window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+      window.speechSynthesis.onvoiceschanged = () => getConsistentMaleVoice();
     }
     document.getElementById('btnTestAndroid').addEventListener('click', speakMaleAndroidVoice);
 
@@ -528,7 +586,7 @@
           voRecorder.onstop = () => {
             stream.getTracks().forEach(t => t.stop());
             activeVocalBlob = new Blob(voChunks, { type: voRecorder.mimeType || 'audio/webm' });
-            vocalStatus.textContent = '✅ Sua voz foi gravada e regulada! Toque em "Ouvir Voz do Vídeo".';
+            vocalStatus.textContent = '✅ Sua voz foi gravada! Toque em "Ouvir Voz do Vídeo".';
             vocalStatus.className = 'status status-ok';
           };
           voRecorder.start();
@@ -924,17 +982,21 @@
     let previewCtx = null;
     let previewVocalEl = null;
 
+    function stopPreviewCleanup() {
+      isPlayingPreview = false;
+      cancelAnimationFrame(previewAnimId);
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      if (previewVocalEl) { previewVocalEl.pause(); previewVocalEl = null; }
+      if (previewCtx) { previewCtx.close(); previewCtx = null; }
+      clips.forEach(c => c.video.pause());
+      document.getElementById('btnPreview').textContent = '▶ Testar Prévia + Voz';
+      drawStaticFrame();
+    }
+
     document.getElementById('btnPreview').addEventListener('click', async () => {
       if (clips.length === 0) return;
       if (isPlayingPreview) {
-        isPlayingPreview = false;
-        cancelAnimationFrame(previewAnimId);
-        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-        if (previewVocalEl) { previewVocalEl.pause(); previewVocalEl = null; }
-        if (previewCtx) { previewCtx.close(); previewCtx = null; }
-        clips.forEach(c => c.video.pause());
-        document.getElementById('btnPreview').textContent = '▶ Testar Prévia + Voz';
-        drawStaticFrame();
+        stopPreviewCleanup();
         return;
       }
 
@@ -944,16 +1006,16 @@
       if (activeVocalBlob) {
         previewCtx = new (window.AudioContext || window.webkitAudioContext)();
         previewVocalEl = new Audio(URL.createObjectURL(activeVocalBlob));
-        configureVocalElement(previewVocalEl);
         const src = previewCtx.createMediaElementSource(previewVocalEl);
         const outNode = buildStudioVocalChain(previewCtx, src);
         outNode.connect(previewCtx.destination);
-        await previewVocalEl.play();
+        await startLockedVocalPlayback(previewVocalEl);
       } else {
         speakMaleAndroidVoice();
       }
 
-      playSequence(false);
+      await playSequence(false);
+      if (isPlayingPreview) stopPreviewCleanup();
     });
 
     // --- RENDERIZAÇÃO FINAL E DOWNLOAD ---
@@ -963,13 +1025,7 @@
         renderStatus.textContent = '⚠️ Selecione pelo menos 1 vídeo da galeria primeiro!';
         return;
       }
-      if (isPlayingPreview) {
-        isPlayingPreview = false;
-        cancelAnimationFrame(previewAnimId);
-        if (previewVocalEl) previewVocalEl.pause();
-        if (previewCtx) previewCtx.close();
-      }
-      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      if (isPlayingPreview) stopPreviewCleanup();
 
       const btnRender = document.getElementById('btnRender');
       btnRender.disabled = true;
@@ -999,12 +1055,11 @@
 
           if (activeVocalBlob) {
             voEl = new Audio(URL.createObjectURL(activeVocalBlob));
-            configureVocalElement(voEl);
             const voSrc = audioCtx.createMediaElementSource(voEl);
             const outNode = buildStudioVocalChain(audioCtx, voSrc);
             outNode.connect(dest);
             outNode.connect(audioCtx.destination);
-            await voEl.play();
+            await startLockedVocalPlayback(voEl);
           }
 
           dest.stream.getAudioTracks().forEach(track => stream.addTrack(track));
@@ -1076,11 +1131,7 @@
           });
         }
 
-        if (!isExport && isPlayingPreview) {
-          playSequence(false);
-        } else {
-          resolve();
-        }
+        resolve();
       });
     }
 
