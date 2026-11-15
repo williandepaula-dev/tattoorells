@@ -81,7 +81,7 @@
     <div id="audioInfo" class="status hidden"></div>
   </div>
 
-  <!-- NOVO: CLONAR ESTILO DE VÍDEO DE REFERÊNCIA DO INSTAGRAM -->
+  <!-- CLONAR ESTILO DE VÍDEO DE REFERÊNCIA DO INSTAGRAM -->
   <div class="card card-ref">
     <h2>🎯 Clonar Estilo de Vídeo de Referência (Insta)</h2>
     <div style="font-size: 11px; color: #9ca3af; margin-bottom: 10px; line-height: 1.4;">
@@ -131,9 +131,15 @@
     <label>Roteiro da Narração (vira legenda sincronizada):</label>
     <textarea id="narrationText">Se liga nos detalhes desse trabalho feito aqui em Guarulhos. Quer um orçamento exclusivo? Chama no WhatsApp!</textarea>
 
+    <!-- OPÇÃO DIRETA: GRAVAR SUA PRÓPRIA VOZ SEM API -->
+    <div class="sub-box">
+      <label style="color: #fbbf24; font-weight: 700;">🎙️ Gravar Sua Própria Voz Lendo o Roteiro (Sem API):</label>
+      <button type="button" class="btn btn-amber" id="btnRecordOwn">🎙️ Gravar Minha Própria Voz Agora</button>
+    </div>
+
     <!-- CLONAGEM DIRETA DA SUA VOZ / LOCUTOR HOMEM -->
     <div class="sub-box">
-      <label style="color: #a78bfa; font-weight: 700;">🧬 Voz Igual à Sua (Clonagem + Locutor Homem):</label>
+      <label style="color: #a78bfa; font-weight: 700;">🧬 Ou Usar Voz Clonada / Locutor Homem (ElevenLabs):</label>
       <div class="row" style="margin-top: 6px;">
         <input type="password" id="elevenKey" placeholder="Cole sua API Key ElevenLabs">
         <button type="button" class="btn btn-dark" style="width: auto; padding: 11px 12px;" id="btnSaveEleven">Salvar</button>
@@ -156,12 +162,6 @@
       </select>
 
       <button type="button" class="btn btn-green" style="margin-top: 8px; padding: 11px; font-size: 13px;" id="btnGenMaleVoice">🗣️ Gerar Narração com Essa Voz</button>
-    </div>
-
-    <!-- OPÇÃO DIRETA: GRAVAR SUA PRÓPRIA VOZ SEM IA -->
-    <div class="sub-box">
-      <label style="color: #fbbf24; font-weight: 700;">🎙️ Ou Grave Você Mesmo Lendo o Roteiro (Sem API):</label>
-      <button type="button" class="btn btn-amber" id="btnRecordOwn">🎙️ Gravar Minha Própria Voz Agora</button>
     </div>
 
     <!-- MESA DE SOM VOCAL COM TRAVA DE TELA -->
@@ -190,7 +190,7 @@
       <input type="range" id="bassSlider" min="0" max="10" step="1" value="7">
 
       <div class="row" style="margin-top: 10px;">
-        <button type="button" class="btn btn-dark" id="btnTestVocal">🔊 Ouvir Voz do Vídeo</button>
+        <button type="button" class="btn btn-dark" id="btnTestVocal">🔊 Ouvir Voz Gravada</button>
         <button type="button" class="btn btn-dark" id="btnTestAndroid">📱 Prévia Rápida Homem</button>
       </div>
       <div id="vocalStatus" class="status"></div>
@@ -242,9 +242,62 @@
     let clips = [];
     let audioFile = null;
     let refVideoFile = null;
-    let activeVocalBlob = null;
+    let activeVocalBuffer = null; // Áudio decodificado em PCM puro (zero engasgos no Android)
     let isPlayingPreview = false;
     let previewAnimId = null;
+
+    // Contextos ativos de reprodução para limpeza segura
+    let activeTestCtx = null;
+    let activeTestSource = null;
+    let previewCtx = null;
+    let previewVocalSource = null;
+
+    function getBestAudioMimeType() {
+      const types = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus'];
+      return types.find(t => MediaRecorder.isTypeSupported(t)) || '';
+    }
+
+    async function decodeBlobToPCMBuffer(blob) {
+      const arrayBuf = await blob.arrayBuffer();
+      const tempCtx = new (window.AudioContext || window.webkitAudioContext)();
+      try {
+        const audioBuffer = await tempCtx.decodeAudioData(arrayBuf);
+        return audioBuffer;
+      } finally {
+        if (tempCtx.state !== 'closed') {
+          await tempCtx.close().catch(() => {});
+        }
+      }
+    }
+
+    async function stopAllPlayback() {
+      if (isPlayingPreview) {
+        isPlayingPreview = false;
+        cancelAnimationFrame(previewAnimId);
+        clips.forEach(c => c.video.pause());
+        document.getElementById('btnPreview').textContent = '▶ Testar Prévia + Voz';
+        drawStaticFrame();
+      }
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      if (previewVocalSource) {
+        try { previewVocalSource.stop(); } catch (_) {}
+        previewVocalSource = null;
+      }
+      if (previewCtx) {
+        if (previewCtx.state !== 'closed') await previewCtx.close().catch(() => {});
+        previewCtx = null;
+      }
+      if (activeTestSource) {
+        try { activeTestSource.stop(); } catch (_) {}
+        activeTestSource = null;
+      }
+      if (activeTestCtx) {
+        if (activeTestCtx.state !== 'closed') await activeTestCtx.close().catch(() => {});
+        activeTestCtx = null;
+      }
+    }
 
     // --- CARREGAR CHAVES E VOZ CLONADA SALVA ---
     const groqKeyInput = document.getElementById('groqKey');
@@ -413,10 +466,8 @@
       refStatus.className = 'status';
 
       try {
-        // 1. Detecta ritmo de edição e extrai frames-chave
         const visualInfo = await analyzeReferenceVideoVisuals(refVideoFile);
 
-        // Aplica o ritmo de cortes clonado no seletor do vídeo
         const cutSelect = document.getElementById('cutSpeed');
         let refOpt = document.getElementById('refCutOption');
         if (!refOpt) {
@@ -428,7 +479,6 @@
         refOpt.textContent = `🎯 Ritmo Clonado da Referência (${visualInfo.cutSec.toFixed(2)}s)`;
         cutSelect.value = refOpt.value;
 
-        // 2. Transcreve áudio/fala do vídeo de referência se couber no limite da Groq (24MB)
         let refTranscript = '';
         if (refVideoFile.size <= 24 * 1024 * 1024) {
           refStatus.textContent = `⏱️ Ritmo detectado (${visualInfo.cutSec}s/corte). Lendo fala e estrutura...`;
@@ -447,10 +497,9 @@
               const wData = await wRes.json();
               refTranscript = (wData.text || '').trim();
             }
-          } catch (_) { /* Se o vídeo só tiver música sem fala, segue com análise visual */ }
+          } catch (_) {}
         }
 
-        // 3. Descobre melhor modelo Groq (priorizando Vision se disponível)
         const modelsRes = await fetch('https://api.groq.com/openai/v1/models', {
           headers: { 'Authorization': `Bearer ${apiKey}` }
         });
@@ -592,6 +641,14 @@
       updateSliderLabels();
     });
 
+    function getTargetVocalRate() {
+      const speed = parseFloat(speedSlider.value);
+      const pitchPct = parseInt(pitchSlider.value, 10);
+      return pitchPct !== 0
+        ? Math.max(0.65, Math.min(1.40, speed * (1 + pitchPct / 100)))
+        : speed;
+    }
+
     // --- CLONAR A PRÓPRIA VOZ DENTRO DO APP ---
     let cloneRecorder = null;
     let cloneChunks = [];
@@ -606,17 +663,21 @@
       }
 
       if (!isCloning) {
+        await stopAllPlayback();
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+          });
           cloneChunks = [];
-          cloneRecorder = new MediaRecorder(stream);
-          cloneRecorder.ondataavailable = e => { if (e.data.size > 0) cloneChunks.push(e.data); };
+          const mimeType = getBestAudioMimeType();
+          cloneRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+          cloneRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) cloneChunks.push(e.data); };
           cloneRecorder.onstop = async () => {
             stream.getTracks().forEach(t => t.stop());
             const sampleBlob = new Blob(cloneChunks, { type: cloneRecorder.mimeType || 'audio/webm' });
             await uploadVoiceClone(sampleBlob, apiKey);
           };
-          cloneRecorder.start();
+          cloneRecorder.start(250);
           isCloning = true;
           btnCloneVoice.textContent = '⏹️ Gravando Amostra... Toque para Finalizar';
           btnCloneVoice.className = 'btn btn-recording';
@@ -702,10 +763,11 @@
           throw new Error(errData.detail?.message || `Erro HTTP ${res.status}`);
         }
 
-        activeVocalBlob = await res.blob();
+        const rawBlob = await res.blob();
+        activeVocalBuffer = await decodeBlobToPCMBuffer(rawBlob);
         elevenStatus.textContent = '✅ Narração masculina gerada e pronta para o vídeo!';
         elevenStatus.className = 'status status-ok';
-        playActiveVocal();
+        await playActiveVocal();
         return true;
       } catch (err) {
         elevenStatus.textContent = `❌ Erro ElevenLabs: ${err.message}`;
@@ -718,28 +780,7 @@
 
     document.getElementById('btnGenMaleVoice').addEventListener('click', generateMaleNeuralAudio);
 
-    // --- TRAVA DE TOM E VELOCIDADE NO CHROME ANDROID ---
-    function applyLockedVocalParams(audioEl) {
-      const speed = parseFloat(speedSlider.value);
-      const pitchPct = parseInt(pitchSlider.value, 10);
-      const targetRate = pitchPct !== 0
-        ? Math.max(0.65, Math.min(1.40, speed * (1 + pitchPct / 100)))
-        : speed;
-
-      audioEl.preservesPitch = (pitchPct === 0);
-      audioEl.webkitPreservesPitch = (pitchPct === 0);
-      audioEl.mozPreservesPitch = (pitchPct === 0);
-      audioEl.playbackRate = targetRate;
-    }
-
-    async function startLockedVocalPlayback(audioEl) {
-      applyLockedVocalParams(audioEl);
-      audioEl.addEventListener('loadedmetadata', () => applyLockedVocalParams(audioEl));
-      audioEl.addEventListener('playing', () => applyLockedVocalParams(audioEl));
-      await audioEl.play();
-      applyLockedVocalParams(audioEl);
-    }
-
+    // --- CADEIA DE ESTÚDIO SEM ENGASGOS (AUDIOBUFFER PCM) ---
     function buildStudioVocalChain(audioCtx, sourceNode) {
       const bassGainDb = parseFloat(bassSlider.value);
 
@@ -780,19 +821,32 @@
 
     const vocalStatus = document.getElementById('vocalStatus');
     async function playActiveVocal() {
-      if (!activeVocalBlob) {
-        vocalStatus.textContent = '⚠️ Gere a voz masculina acima ou grave no botão amarelo primeiro.';
+      if (!activeVocalBuffer) {
+        vocalStatus.textContent = '⚠️ Grave sua voz no botão amarelo ou gere acima primeiro.';
         return;
       }
+      await stopAllPlayback();
       try {
-        const testCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const testEl = new Audio(URL.createObjectURL(activeVocalBlob));
-        const src = testCtx.createMediaElementSource(testEl);
-        const outNode = buildStudioVocalChain(testCtx, src);
-        outNode.connect(testCtx.destination);
-        testEl.onended = () => testCtx.close();
-        await startLockedVocalPlayback(testEl);
-        vocalStatus.textContent = '🔊 Reproduzindo voz masculina com tom travado!';
+        activeTestCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (activeTestCtx.state === 'suspended') await activeTestCtx.resume();
+
+        activeTestSource = activeTestCtx.createBufferSource();
+        activeTestSource.buffer = activeVocalBuffer;
+        activeTestSource.playbackRate.value = getTargetVocalRate();
+
+        const outNode = buildStudioVocalChain(activeTestCtx, activeTestSource);
+        outNode.connect(activeTestCtx.destination);
+
+        activeTestSource.onended = () => {
+          if (activeTestCtx && activeTestCtx.state !== 'closed') {
+            activeTestCtx.close().catch(() => {});
+          }
+          activeTestCtx = null;
+          activeTestSource = null;
+        };
+
+        activeTestSource.start(0);
+        vocalStatus.textContent = '🔊 Reproduzindo voz limpa e regulada!';
         vocalStatus.className = 'status status-ok';
       } catch (e) {
         vocalStatus.textContent = '❌ Erro ao reproduzir áudio.';
@@ -842,7 +896,7 @@
     }
     document.getElementById('btnTestAndroid').addEventListener('click', speakMaleAndroidVoice);
 
-    // --- GRAVAR PRÓPRIA VOZ LENDO O ROTEIRO ---
+    // --- GRAVAR PRÓPRIA VOZ LENDO O ROTEIRO (SEM ENGASGOS) ---
     let voRecorder = null;
     let voChunks = [];
     let isRecordingVO = false;
@@ -850,30 +904,61 @@
 
     btnRecordOwn.addEventListener('click', async () => {
       if (!isRecordingVO) {
+        // Libera o hardware de áudio do Android antes de abrir o microfone
+        await stopAllPlayback();
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+          });
           voChunks = [];
-          voRecorder = new MediaRecorder(stream);
-          voRecorder.ondataavailable = e => { if (e.data.size > 0) voChunks.push(e.data); };
-          voRecorder.onstop = () => {
-            stream.getTracks().forEach(t => t.stop());
-            activeVocalBlob = new Blob(voChunks, { type: voRecorder.mimeType || 'audio/webm' });
-            vocalStatus.textContent = '✅ Sua voz foi gravada! Toque em "Ouvir Voz do Vídeo".';
-            vocalStatus.className = 'status status-ok';
+          const mimeType = getBestAudioMimeType();
+          voRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+
+          voRecorder.ondataavailable = e => {
+            if (e.data && e.data.size > 0) voChunks.push(e.data);
           };
-          voRecorder.start();
+
+          voRecorder.onstop = async () => {
+            stream.getTracks().forEach(t => t.stop());
+            try {
+              const rawBlob = new Blob(voChunks, { type: voRecorder.mimeType || 'audio/webm' });
+              if (rawBlob.size < 800) {
+                vocalStatus.textContent = '⚠️ Gravação muito curta. Fale por pelo menos 2 segundos.';
+                vocalStatus.className = 'status';
+                return;
+              }
+              activeVocalBuffer = await decodeBlobToPCMBuffer(rawBlob);
+              const dur = activeVocalBuffer.duration.toFixed(1);
+              vocalStatus.textContent = `✅ Voz gravada com sucesso (${dur}s)! Toque em "Ouvir Voz Gravada" ou dê Play no vídeo.`;
+              vocalStatus.className = 'status status-ok';
+            } catch (decodeErr) {
+              vocalStatus.textContent = '❌ Falha ao processar o áudio gravado. Tente gravar novamente.';
+              vocalStatus.className = 'status';
+            }
+          };
+
+          voRecorder.start(250);
           isRecordingVO = true;
           btnRecordOwn.textContent = '⏹️ Parar Gravação';
           btnRecordOwn.className = 'btn btn-recording';
-          vocalStatus.textContent = '🎙️ Leia o roteiro acima agora...';
+          vocalStatus.textContent = '🎙️ Gravando... Leia o roteiro acima com calma e toque para parar.';
+          vocalStatus.className = 'status';
         } catch (err) {
-          vocalStatus.textContent = '❌ Permissão de microfone negada.';
+          vocalStatus.textContent = '❌ Permissão de microfone negada no navegador.';
         }
       } else {
-        voRecorder.stop();
-        isRecordingVO = false;
-        btnRecordOwn.textContent = '🎙️ Regravar Minha Própria Voz';
-        btnRecordOwn.className = 'btn btn-amber';
+        btnRecordOwn.disabled = true;
+        vocalStatus.textContent = '⏳ Finalizando e limpando áudio...';
+        try {
+          if (voRecorder && voRecorder.state !== 'inactive') {
+            voRecorder.stop();
+          }
+        } finally {
+          isRecordingVO = false;
+          btnRecordOwn.disabled = false;
+          btnRecordOwn.textContent = '🎙️ Regravar Minha Própria Voz';
+          btnRecordOwn.className = 'btn btn-amber';
+        }
       }
     });
 
@@ -889,17 +974,21 @@
       if (!apiKey) { aiStatus.textContent = '⚠️ Cole e salve sua API Key da Groq acima primeiro.'; return; }
 
       if (!isRecording) {
+        await stopAllPlayback();
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const stream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+          });
           audioChunks = [];
-          mediaRecorder = new MediaRecorder(stream);
-          mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+          const mimeType = getBestAudioMimeType();
+          mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+          mediaRecorder.ondataavailable = e => { if (e.data && e.data.size > 0) audioChunks.push(e.data); };
           mediaRecorder.onstop = async () => {
             stream.getTracks().forEach(t => t.stop());
             const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
             await transcribeAndGenerate(audioBlob, apiKey);
           };
-          mediaRecorder.start();
+          mediaRecorder.start(250);
           isRecording = true;
           btnMic.textContent = '⏹️ Gravando... Toque para Finalizar';
           btnMic.className = 'btn btn-recording';
@@ -1250,44 +1339,35 @@
       });
     });
 
-    // --- PRÉVIA ANIMADA + VOZ ---
-    let previewCtx = null;
-    let previewVocalEl = null;
-
-    function stopPreviewCleanup() {
-      isPlayingPreview = false;
-      cancelAnimationFrame(previewAnimId);
-      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-      if (previewVocalEl) { previewVocalEl.pause(); previewVocalEl = null; }
-      if (previewCtx) { previewCtx.close(); previewCtx = null; }
-      clips.forEach(c => c.video.pause());
-      document.getElementById('btnPreview').textContent = '▶ Testar Prévia + Voz';
-      drawStaticFrame();
-    }
-
+    // --- PRÉVIA ANIMADA + VOZ SEM ENGASGOS ---
     document.getElementById('btnPreview').addEventListener('click', async () => {
       if (clips.length === 0) return;
       if (isPlayingPreview) {
-        stopPreviewCleanup();
+        await stopAllPlayback();
         return;
       }
 
+      await stopAllPlayback();
       isPlayingPreview = true;
       document.getElementById('btnPreview').textContent = '⏹ Parar Prévia';
 
-      if (activeVocalBlob) {
+      if (activeVocalBuffer) {
         previewCtx = new (window.AudioContext || window.webkitAudioContext)();
-        previewVocalEl = new Audio(URL.createObjectURL(activeVocalBlob));
-        const src = previewCtx.createMediaElementSource(previewVocalEl);
-        const outNode = buildStudioVocalChain(previewCtx, src);
+        if (previewCtx.state === 'suspended') await previewCtx.resume();
+
+        previewVocalSource = previewCtx.createBufferSource();
+        previewVocalSource.buffer = activeVocalBuffer;
+        previewVocalSource.playbackRate.value = getTargetVocalRate();
+
+        const outNode = buildStudioVocalChain(previewCtx, previewVocalSource);
         outNode.connect(previewCtx.destination);
-        await startLockedVocalPlayback(previewVocalEl);
+        previewVocalSource.start(0);
       } else {
         speakMaleAndroidVoice();
       }
 
       await playSequence(false);
-      if (isPlayingPreview) stopPreviewCleanup();
+      if (isPlayingPreview) await stopAllPlayback();
     });
 
     // --- RENDERIZAÇÃO FINAL E DOWNLOAD ---
@@ -1297,20 +1377,21 @@
         renderStatus.textContent = '⚠️ Selecione pelo menos 1 vídeo seu da galeria primeiro!';
         return;
       }
-      if (isPlayingPreview) stopPreviewCleanup();
+      await stopAllPlayback();
 
       const btnRender = document.getElementById('btnRender');
       btnRender.disabled = true;
-      renderStatus.textContent = '🎬 Renderizando seu Reels 9:16 com voz masculina...';
+      renderStatus.textContent = '🎬 Renderizando seu Reels 9:16 com voz limpa...';
 
       const stream = canvas.captureStream(30);
       let audioCtx = null;
       let beatEl = null;
-      let voEl = null;
+      let voSource = null;
 
-      if (audioFile || activeVocalBlob) {
+      if (audioFile || activeVocalBuffer) {
         try {
           audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          if (audioCtx.state === 'suspended') await audioCtx.resume();
           const dest = audioCtx.createMediaStreamDestination();
 
           if (audioFile) {
@@ -1318,20 +1399,22 @@
             beatEl.crossOrigin = 'anonymous';
             const beatSrc = audioCtx.createMediaElementSource(beatEl);
             const beatGain = audioCtx.createGain();
-            beatGain.gain.value = activeVocalBlob ? 0.22 : 0.9;
+            beatGain.gain.value = activeVocalBuffer ? 0.22 : 0.9;
             beatSrc.connect(beatGain);
             beatGain.connect(dest);
             beatGain.connect(audioCtx.destination);
             await beatEl.play();
           }
 
-          if (activeVocalBlob) {
-            voEl = new Audio(URL.createObjectURL(activeVocalBlob));
-            const voSrc = audioCtx.createMediaElementSource(voEl);
-            const outNode = buildStudioVocalChain(audioCtx, voSrc);
+          if (activeVocalBuffer) {
+            voSource = audioCtx.createBufferSource();
+            voSource.buffer = activeVocalBuffer;
+            voSource.playbackRate.value = getTargetVocalRate();
+
+            const outNode = buildStudioVocalChain(audioCtx, voSource);
             outNode.connect(dest);
             outNode.connect(audioCtx.destination);
-            await startLockedVocalPlayback(voEl);
+            voSource.start(0);
           }
 
           dest.stream.getAudioTracks().forEach(track => stream.addTrack(track));
@@ -1347,8 +1430,8 @@
 
       recorder.onstop = () => {
         if (beatEl) beatEl.pause();
-        if (voEl) voEl.pause();
-        if (audioCtx) audioCtx.close();
+        if (voSource) { try { voSource.stop(); } catch (_) {} }
+        if (audioCtx && audioCtx.state !== 'closed') audioCtx.close().catch(() => {});
         const blob = new Blob(chunks, { type: mimeType });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -1356,7 +1439,7 @@
         a.download = `tattooreels-guarulhos.${mimeType === 'video/mp4' ? 'mp4' : 'webm'}`;
         a.click();
         btnRender.disabled = false;
-        renderStatus.textContent = '✅ Vídeo pronto com voz masculina e baixado na galeria!';
+        renderStatus.textContent = '✅ Vídeo pronto sem falhas e baixado na galeria!';
         renderStatus.className = 'status status-ok';
         drawStaticFrame();
       };
