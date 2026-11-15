@@ -15,6 +15,7 @@
     .preview-controls { display: flex; gap: 8px; margin-top: 10px; width: 205px; }
     .card { background: #15151d; border: 1px solid #262635; border-radius: 14px; padding: 14px; margin-bottom: 14px; }
     .card h2 { font-size: 12px; text-transform: uppercase; color: #9ca3af; letter-spacing: 0.6px; margin-bottom: 10px; }
+    .card-ref { border-color: rgba(124, 58, 237, 0.55); background: linear-gradient(180deg, #181524 0%, #15151d 100%); }
     label { display: block; font-size: 12px; color: #d1d5db; margin-bottom: 5px; margin-top: 10px; }
     label:first-of-type { margin-top: 0; }
     input[type="text"], input[type="password"], select, textarea { width: 100%; background: #0b0b0f; border: 1px solid #2e2e3e; color: #fff; padding: 11px 12px; border-radius: 10px; font-size: 14px; outline: none; }
@@ -29,6 +30,7 @@
     .btn-blue { background: #2563eb; margin-top: 8px; }
     .btn-green { background: #16a34a; font-size: 15px; padding: 14px; }
     .btn-purple { background: #7c3aed; }
+    .btn-indigo { background: #4f46e5; }
     .btn-amber { background: #d97706; }
     .btn-recording { background: #dc2626; animation: pulse 1.2s infinite; }
     .btn-dark { background: #262635; font-size: 12px; padding: 9px 10px; }
@@ -40,6 +42,7 @@
     .slider-val { color: #fbbf24; font-weight: 700; }
     .sub-box { background: #0b0b0f; border: 1px solid #262635; border-radius: 10px; padding: 11px 12px; margin-top: 10px; }
     .sample-quote { font-size: 11px; color: #9ca3af; background: #15151d; padding: 8px; border-radius: 8px; border-left: 3px solid #7c3aed; margin: 6px 0 8px 0; line-height: 1.4; }
+    .ref-badge { display: flex; justify-content: space-between; align-items: center; background: #0b0b0f; border: 1px solid #4f46e5; padding: 8px 10px; border-radius: 8px; font-size: 12px; margin-top: 8px; color: #c7d2fe; }
     .clip-list { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
     .clip-item { display: flex; justify-content: space-between; align-items: center; background: #0b0b0f; border: 1px solid #262635; padding: 8px 10px; border-radius: 8px; font-size: 12px; }
     .clip-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px; }
@@ -66,11 +69,11 @@
     </div>
   </div>
 
-  <!-- 1. VÍDEOS E BEAT -->
+  <!-- 1. SEUS VÍDEOS E BEAT -->
   <div class="card">
-    <h2>1. Vídeos da Galeria (Resultado Final por Último)</h2>
+    <h2>1. Seus Vídeos da Tattoo (Resultado Final por Último)</h2>
     <input type="file" id="videoInput" accept="video/*" multiple class="hidden">
-    <button type="button" class="btn btn-pink" onclick="document.getElementById('videoInput').click()">+ Selecionar Vídeos da Galeria</button>
+    <button type="button" class="btn btn-pink" onclick="document.getElementById('videoInput').click()">+ Selecionar Meus Vídeos da Galeria</button>
     <div id="clipList" class="clip-list"></div>
 
     <input type="file" id="audioInput" accept="audio/*" class="hidden">
@@ -78,9 +81,31 @@
     <div id="audioInfo" class="status hidden"></div>
   </div>
 
+  <!-- NOVO: CLONAR ESTILO DE VÍDEO DE REFERÊNCIA DO INSTAGRAM -->
+  <div class="card card-ref">
+    <h2>🎯 Clonar Estilo de Vídeo de Referência (Insta)</h2>
+    <div style="font-size: 11px; color: #9ca3af; margin-bottom: 10px; line-height: 1.4;">
+      Salve ou grave a tela de um Reels de outro tatuador que você curtiu. A IA copia o <strong>ritmo dos cortes</strong> e adapta o <strong>roteiro</strong> para a sua tattoo.
+    </div>
+
+    <input type="file" id="refVideoInput" accept="video/*" class="hidden">
+    <button type="button" class="btn btn-indigo" onclick="document.getElementById('refVideoInput').click()">📹 Escolher Vídeo de Referência da Galeria</button>
+
+    <div id="refSelectedBox" class="ref-badge hidden">
+      <span id="refFileName" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px;"></span>
+      <button type="button" class="mini-btn" id="btnClearRef">✕</button>
+    </div>
+
+    <label>O que é a SUA tattoo (para adaptar o roteiro):</label>
+    <input type="text" id="myTattooContext" placeholder="Ex: Lobo realismo no antebraço feito em 1 sessão">
+
+    <button type="button" class="btn btn-purple" style="margin-top: 10px;" id="btnAnalyzeRef">⚡ Copiar Estilo, Ritmo e Roteiro para Meu Vídeo</button>
+    <div id="refStatus" class="status"></div>
+  </div>
+
   <!-- 2. IA DIRETORA DE REELS (GROQ) -->
   <div class="card">
-    <h2>2. IA Diretora de Reels (Roteiro + Dinâmica)</h2>
+    <h2>2. IA Diretora de Reels (Sem Referência)</h2>
     <label>Sua API Key da Groq:</label>
     <div class="row">
       <input type="password" id="groqKey" placeholder="Cole sua chave gsk_...">
@@ -216,6 +241,7 @@
     const ctx = canvas.getContext('2d');
     let clips = [];
     let audioFile = null;
+    let refVideoFile = null;
     let activeVocalBlob = null;
     let isPlayingPreview = false;
     let previewAnimId = null;
@@ -271,6 +297,252 @@
       }
     }
     loadClonedVoiceOption();
+
+    // --- ANALISADOR E CLONADOR DE VÍDEO DE REFERÊNCIA (INSTA) ---
+    const refVideoInput = document.getElementById('refVideoInput');
+    const refSelectedBox = document.getElementById('refSelectedBox');
+    const refFileName = document.getElementById('refFileName');
+    const refStatus = document.getElementById('refStatus');
+
+    refVideoInput.addEventListener('change', (e) => {
+      if (e.target.files[0]) {
+        refVideoFile = e.target.files[0];
+        refFileName.textContent = `📹 ${refVideoFile.name}`;
+        refSelectedBox.classList.remove('hidden');
+        refStatus.textContent = 'Vídeo carregado! Agora toque em "Copiar Estilo, Ritmo e Roteiro".';
+        refStatus.className = 'status';
+      }
+      e.target.value = '';
+    });
+
+    document.getElementById('btnClearRef').addEventListener('click', () => {
+      refVideoFile = null;
+      refSelectedBox.classList.add('hidden');
+      refStatus.textContent = '';
+    });
+
+    function seekVideoSafe(videoEl, timeSec) {
+      return new Promise((resolve) => {
+        let done = false;
+        const finish = () => {
+          if (done) return;
+          done = true;
+          videoEl.removeEventListener('seeked', finish);
+          resolve();
+        };
+        videoEl.addEventListener('seeked', finish);
+        videoEl.currentTime = timeSec;
+        setTimeout(finish, 600);
+      });
+    }
+
+    async function analyzeReferenceVideoVisuals(file) {
+      const url = URL.createObjectURL(file);
+      const vid = document.createElement('video');
+      vid.src = url;
+      vid.muted = true;
+      vid.playsInline = true;
+
+      await new Promise((res) => {
+        vid.onloadedmetadata = res;
+        setTimeout(res, 2000);
+      });
+
+      const duration = Math.min(vid.duration || 10, 14);
+      const step = 0.35;
+      const tinyCanvas = document.createElement('canvas');
+      tinyCanvas.width = 48;
+      tinyCanvas.height = 85;
+      const tCtx = tinyCanvas.getContext('2d', { willReadFrequently: true });
+
+      const frameCanvas = document.createElement('canvas');
+      frameCanvas.width = 270;
+      frameCanvas.height = 480;
+      const fCtx = frameCanvas.getContext('2d');
+
+      let prevData = null;
+      let detectedCuts = 0;
+      const keyframes = [];
+      const keyTimes = [duration * 0.15, duration * 0.5, duration * 0.85];
+      let nextKeyIdx = 0;
+
+      for (let t = 0.1; t < duration; t += step) {
+        await seekVideoSafe(vid, t);
+        tCtx.drawImage(vid, 0, 0, tinyCanvas.width, tinyCanvas.height);
+        const currData = tCtx.getImageData(0, 0, tinyCanvas.width, tinyCanvas.height).data;
+
+        if (prevData) {
+          let diffSum = 0;
+          for (let i = 0; i < currData.length; i += 4) {
+            diffSum += Math.abs(currData[i] - prevData[i]) +
+                       Math.abs(currData[i + 1] - prevData[i + 1]) +
+                       Math.abs(currData[i + 2] - prevData[i + 2]);
+          }
+          const avgDiff = diffSum / (tinyCanvas.width * tinyCanvas.height * 3);
+          if (avgDiff > 34) detectedCuts++;
+        }
+        prevData = currData;
+
+        if (nextKeyIdx < keyTimes.length && t >= keyTimes[nextKeyIdx]) {
+          fCtx.drawImage(vid, 0, 0, frameCanvas.width, frameCanvas.height);
+          keyframes.push(frameCanvas.toDataURL('image/jpeg', 0.65));
+          nextKeyIdx++;
+        }
+      }
+
+      URL.revokeObjectURL(url);
+      const rawCutSec = duration / Math.max(1, detectedCuts + 1);
+      const cutSec = Math.max(0.9, Math.min(3.2, parseFloat(rawCutSec.toFixed(2))));
+      return { cutSec, detectedCuts, duration: duration.toFixed(1), keyframes };
+    }
+
+    document.getElementById('btnAnalyzeRef').addEventListener('click', async () => {
+      const apiKey = groqKeyInput.value.trim();
+      if (!refVideoFile) {
+        refStatus.textContent = '⚠️ Selecione primeiro o vídeo de referência da galeria.';
+        return;
+      }
+      if (!apiKey) {
+        refStatus.textContent = '⚠️ Cole e salve sua API Key da Groq na seção 2 primeiro.';
+        return;
+      }
+
+      const btn = document.getElementById('btnAnalyzeRef');
+      btn.disabled = true;
+      refStatus.textContent = '🔍 Medindo ritmo de cortes e analisando estilo do vídeo de referência...';
+      refStatus.className = 'status';
+
+      try {
+        // 1. Detecta ritmo de edição e extrai frames-chave
+        const visualInfo = await analyzeReferenceVideoVisuals(refVideoFile);
+
+        // Aplica o ritmo de cortes clonado no seletor do vídeo
+        const cutSelect = document.getElementById('cutSpeed');
+        let refOpt = document.getElementById('refCutOption');
+        if (!refOpt) {
+          refOpt = document.createElement('option');
+          refOpt.id = 'refCutOption';
+          cutSelect.prepend(refOpt);
+        }
+        refOpt.value = visualInfo.cutSec.toFixed(2);
+        refOpt.textContent = `🎯 Ritmo Clonado da Referência (${visualInfo.cutSec.toFixed(2)}s)`;
+        cutSelect.value = refOpt.value;
+
+        // 2. Transcreve áudio/fala do vídeo de referência se couber no limite da Groq (24MB)
+        let refTranscript = '';
+        if (refVideoFile.size <= 24 * 1024 * 1024) {
+          refStatus.textContent = `⏱️ Ritmo detectado (${visualInfo.cutSec}s/corte). Lendo fala e estrutura...`;
+          try {
+            const formData = new FormData();
+            formData.append('file', refVideoFile, refVideoFile.name || 'ref.mp4');
+            formData.append('model', 'whisper-large-v3-turbo');
+            formData.append('language', 'pt');
+
+            const wRes = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${apiKey}` },
+              body: formData
+            });
+            if (wRes.ok) {
+              const wData = await wRes.json();
+              refTranscript = (wData.text || '').trim();
+            }
+          } catch (_) { /* Se o vídeo só tiver música sem fala, segue com análise visual */ }
+        }
+
+        // 3. Descobre melhor modelo Groq (priorizando Vision se disponível)
+        const modelsRes = await fetch('https://api.groq.com/openai/v1/models', {
+          headers: { 'Authorization': `Bearer ${apiKey}` }
+        });
+        const modelsData = await modelsRes.json();
+        if (!modelsRes.ok) throw new Error(modelsData.error?.message || 'Erro ao buscar modelos Groq');
+
+        const allIds = (modelsData.data || []).map(m => m.id);
+        const visionModel = allIds.find(id => /llama-4-scout|llama-4-maverick|vision/i.test(id));
+        const textModel =
+          allIds.find(id => !/whisper|tts|guard|embed|orpheus|playai|distil|compound/i.test(id) && /llama-4|llama-3\.3|llama-3\.1/i.test(id)) ||
+          allIds.find(id => !/whisper|tts|guard|embed|orpheus|playai|distil|compound/i.test(id));
+
+        const chosenModel = visionModel || textModel;
+        if (!chosenModel) throw new Error('Nenhum modelo ativo encontrado na sua conta Groq.');
+
+        const myTattoo = document.getElementById('myTattooContext').value.trim() ||
+          'Trabalho exclusivo de tatuagem feito no estúdio em Guarulhos - SP';
+
+        const pacingStyle = visualInfo.cutSec <= 1.6
+          ? 'cortes muito rápidos, dinâmicos e de alto impacto'
+          : visualInfo.cutSec <= 2.4
+            ? 'cortes dinâmicos estilo Reels viral com narração envolvente'
+            : 'cortes mais cadenciados focados em detalhes artísticos e acabamento';
+
+        const systemPrompt = 'Você é diretor de vídeos virais para um tatuador homem em Guarulhos - SP (@williandepaulatattoo). O usuário enviou um vídeo de referência de outro tatuador para clonar o ESTILO, DINÂMICA e ESTRUTURA DE RETENÇÃO, mas adaptado 100% para o trabalho do usuário. Responda APENAS com um objeto JSON válido (sem markdown) com estas 4 chaves: "gancho" (frase curta em MAIÚSCULAS até 34 caracteres + 1 emoji inspirada no estilo da referência), "narracao" (texto de 15 a 24 palavras em primeira pessoa masculina, natural, imitando a energia/estrutura da referência mas falando da tattoo do usuário em Guarulhos e chamando para orçamento no WhatsApp), "topicos" (array com exatamente 3 strings curtas em MAIÚSCULAS com emoji, até 28 caracteres cada, estilo selos dinâmicos na tela), e "legenda" (legenda completa para Instagram Reels com CTA para WhatsApp e hashtags de Guarulhos).';
+
+        const userTextPrompt =
+          `Métricas do vídeo de referência: ${visualInfo.detectedCuts} trocas de cena em ${visualInfo.duration}s (${pacingStyle}).\n` +
+          (refTranscript ? `Fala/texto captado no vídeo de referência: "${refTranscript}"\n` : `O vídeo de referência não possui fala (focado em visual/batida).\n`) +
+          `Agora adapte esse mesmo estilo para a MINHA tatuagem: "${myTattoo}".`;
+
+        const userContent = (visionModel && visualInfo.keyframes.length > 0)
+          ? [
+              { type: 'text', text: userTextPrompt },
+              ...visualInfo.keyframes.map(imgUrl => ({ type: 'image_url', image_url: { url: imgUrl } }))
+            ]
+          : userTextPrompt;
+
+        refStatus.textContent = '✍️ Adaptando gancho, roteiro e dinâmica para o seu vídeo...';
+
+        const chatRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: chosenModel,
+            temperature: 0.7,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userContent }
+            ]
+          })
+        });
+
+        const chatData = await chatRes.json();
+        if (!chatRes.ok) throw new Error(chatData.error?.message || 'Erro ao adaptar referência');
+
+        const rawContent = chatData.choices[0].message.content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+        const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error('Formato inesperado da IA. Tente novamente.');
+
+        const result = JSON.parse(jsonMatch[0]);
+        if (result.gancho) document.getElementById('hookText').value = result.gancho.toUpperCase();
+        if (result.narracao) document.getElementById('narrationText').value = result.narracao;
+        if (Array.isArray(result.topicos)) {
+          if (result.topicos[0]) document.getElementById('topic1').value = result.topicos[0].toUpperCase();
+          if (result.topicos[1]) document.getElementById('topic2').value = result.topicos[1].toUpperCase();
+          if (result.topicos[2]) document.getElementById('topic3').value = result.topicos[2].toUpperCase();
+        }
+        if (result.legenda) {
+          document.getElementById('captionOutput').value = result.legenda;
+          document.getElementById('captionBox').classList.remove('hidden');
+        }
+
+        drawStaticFrame();
+        if (elevenKeyInput.value.trim()) {
+          await generateMaleNeuralAudio();
+        } else {
+          speakMaleAndroidVoice();
+        }
+
+        refStatus.textContent = `✅ Estilo clonado! Ritmo ajustado para ${visualInfo.cutSec.toFixed(2)}s/corte e roteiro aplicado.`;
+        refStatus.className = 'status status-ok';
+      } catch (err) {
+        refStatus.textContent = `❌ Erro ao analisar referência: ${err.message}`;
+        refStatus.className = 'status';
+      } finally {
+        btn.disabled = false;
+      }
+    });
 
     // --- SLIDERS VOCAIS COM TRAVA E MEMÓRIA ---
     const speedSlider = document.getElementById('speedSlider');
@@ -529,7 +801,7 @@
 
     document.getElementById('btnTestVocal').addEventListener('click', playActiveVocal);
 
-    // --- PRÉVIA RÁPIDA COM VOZ MASCULINA FIXA (SEM ALTERNAR VOZES) ---
+    // --- PRÉVIA RÁPIDA COM VOZ MASCULINA FIXA ---
     let lockedAndroidVoiceURI = null;
     function getConsistentMaleVoice() {
       if (!('speechSynthesis' in window)) return null;
@@ -605,7 +877,7 @@
       }
     });
 
-    // --- MICROFONE WHISPER + IA GROQ ---
+    // --- MICROFONE WHISPER + IA GROQ (CRIAÇÃO DIRETA) ---
     let mediaRecorder = null;
     let audioChunks = [];
     let isRecording = false;
@@ -759,7 +1031,7 @@
       aiStatus.textContent = '📋 Legenda copiada!';
     });
 
-    // --- GERENCIAMENTO DE VÍDEOS E BEAT ---
+    // --- GERENCIAMENTO DOS SEUS VÍDEOS E BEAT ---
     document.getElementById('videoInput').addEventListener('change', async (e) => {
       const files = Array.from(e.target.files);
       for (const file of files) {
@@ -955,7 +1227,7 @@
         ctx.textAlign = 'center';
         ctx.fillText('PRÉVIA 9:16 PRONTA', canvas.width / 2, canvas.height / 2 - 12);
         ctx.font = '15px sans-serif';
-        ctx.fillText('Toque em "+ Selecionar Vídeos"', canvas.width / 2, canvas.height / 2 + 16);
+        ctx.fillText('Toque em "+ Selecionar Meus Vídeos"', canvas.width / 2, canvas.height / 2 + 16);
       }
       drawOverlays(0.15, 0, 1, 0);
     }
@@ -1022,7 +1294,7 @@
     document.getElementById('btnRender').addEventListener('click', async () => {
       const renderStatus = document.getElementById('renderStatus');
       if (clips.length === 0) {
-        renderStatus.textContent = '⚠️ Selecione pelo menos 1 vídeo da galeria primeiro!';
+        renderStatus.textContent = '⚠️ Selecione pelo menos 1 vídeo seu da galeria primeiro!';
         return;
       }
       if (isPlayingPreview) stopPreviewCleanup();
