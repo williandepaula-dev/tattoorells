@@ -204,5 +204,255 @@
         if (!whisperRes.ok) throw new Error(whisperData.error?.message || 'Erro no Whisper');
 
         const transcript = whisperData.text;
-        aiStatus.
-    
+        aiStatus.textContent = `✍️ Gerando gancho e legenda para: "${transcript}"...`;
+
+        // Busca automaticamente um modelo de texto ativo na conta do usuário
+        const modelsRes = await fetch('https://api.groq.com/openai/v1/models', {
+          headers: { 'Authorization': `Bearer ${apiKey}` }
+        });
+        const modelsData = await modelsRes.json();
+        if (!modelsRes.ok) throw new Error(modelsData.error?.message || 'Erro ao buscar modelos Groq');
+
+        const textModels = (modelsData.data || [])
+          .map(m => m.id)
+          .filter(id => !/whisper|tts|guard|embed|orpheus|playai|distil|compound/i.test(id));
+
+        const chosenModel =
+          textModels.find(id => /llama-4|llama-3\.3|llama-3\.1/i.test(id)) ||
+          textModels.find(id => /llama|gpt-oss|qwen|gemma|mixtral/i.test(id)) ||
+          textModels[0];
+
+        if (!chosenModel) throw new Error('Nenhum modelo de texto ativo encontrado na sua conta Groq.');
+
+        const chatRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: chosenModel,
+            temperature: 0.7,
+            messages: [
+              {
+                role: 'system',
+                content: 'Você é especialista em marketing para estúdios de tatuagem em Guarulhos - SP. Responda APENAS com um objeto JSON válido (sem markdown e sem texto fora do JSON) contendo exatamente duas chaves: "gancho" (frase curta em MAIÚSCULAS com no máximo 36 caracteres e 1 emoji para o topo do Reels) e "legenda" (legenda persuasiva para Instagram Reels focada em clientes de Guarulhos - Vila Augusta, Bosque Maia, Centro - com chamada para orçamento no WhatsApp e hashtags de tatuagem em Guarulhos).'
+              },
+              {
+                role: 'user',
+                content: `O tatuador falou: ${transcript}`
+              }
+            ]
+          })
+        });
+
+        const chatData = await chatRes.json();
+        if (!chatRes.ok) throw new Error(chatData.error?.message || 'Erro ao gerar texto');
+
+        const rawContent = chatData.choices[0].message.content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+        const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error('Formato inesperado da IA. Tente falar novamente.');
+
+        const result = JSON.parse(jsonMatch[0]);
+        if (result.gancho) {
+          document.getElementById('hookText').value = result.gancho.toUpperCase();
+          drawStaticFrame();
+        }
+        if (result.legenda) {
+          document.getElementById('captionOutput').value = result.legenda;
+          document.getElementById('captionBox').classList.remove('hidden');
+        }
+        aiStatus.textContent = `✅ Pronto! (Modelo usado: ${chosenModel})`;
+        aiStatus.className = 'status status-ok';
+      } catch (err) {
+        aiStatus.textContent = `❌ Erro na Groq: ${err.message}`;
+        aiStatus.className = 'status';
+      }
+    }
+
+    document.getElementById('btnCopyCaption').addEventListener('click', () => {
+      const txt = document.getElementById('captionOutput');
+      txt.select();
+      navigator.clipboard.writeText(txt.value);
+      aiStatus.textContent = '📋 Legenda copiada! Só colar no Instagram.';
+    });
+
+    // --- GERENCIAMENTO DE VÍDEOS E BEAT ---
+    document.getElementById('videoInput').addEventListener('change', async (e) => {
+      const files = Array.from(e.target.files);
+      for (const file of files) {
+        const url = URL.createObjectURL(file);
+        const video = document.createElement('video');
+        video.src = url;
+        video.muted = true;
+        video.playsInline = true;
+        await new Promise(res => { video.onloadeddata = res; });
+        clips.push({ name: file.name, url, video });
+      }
+      renderClipList();
+      drawStaticFrame();
+      e.target.value = '';
+    });
+
+    document.getElementById('audioInput').addEventListener('change', (e) => {
+      if (e.target.files[0]) {
+        audioFile = e.target.files[0];
+        const info = document.getElementById('audioInfo');
+        info.textContent = `🎵 Beat carregado: ${audioFile.name}`;
+        info.classList.remove('hidden');
+      }
+    });
+
+    function renderClipList() {
+      const list = document.getElementById('clipList');
+      list.innerHTML = '';
+      clips.forEach((clip, idx) => {
+        const div = document.createElement('div');
+        div.className = 'clip-item';
+        div.innerHTML = `
+          <span class="clip-name">${idx + 1}. ${clip.name}</span>
+          <div class="clip-actions">
+            <button type="button" class="mini-btn" onclick="moveClip(${idx}, -1)">↑</button>
+            <button type="button" class="mini-btn" onclick="moveClip(${idx}, 1)">↓</button>
+            <button type="button" class="mini-btn" onclick="removeClip(${idx})">✕</button>
+          </div>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    window.moveClip = (idx, dir) => {
+      const target = idx + dir;
+      if (target < 0 || target >= clips.length) return;
+      [clips[idx], clips[target]] = [clips[target], clips[idx]];
+      renderClipList();
+      drawStaticFrame();
+    };
+
+    window.removeClip = (idx) => {
+      URL.revokeObjectURL(clips[idx].url);
+      clips.splice(idx, 1);
+      renderClipList();
+      drawStaticFrame();
+    };
+
+    // --- DESENHO DO CANVAS 9:16 ---
+    function drawOverlays(progressRatio = 0.5, flashAlpha = 0) {
+      const W = canvas.width;
+      const H = canvas.height;
+
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      ctx.fillRect(0, 0, W, 8);
+      ctx.fillStyle = '#e11d48';
+      ctx.fillRect(0, 0, W * progressRatio, 8);
+
+      const hook = document.getElementById('hookText').value.trim();
+      if (hook) {
+        ctx.font = 'bold 21px sans-serif';
+        const padX = 24;
+        const boxW = Math.min(W - 40, ctx.measureText(hook).width + padX * 2);
+        const boxX = (W - boxW) / 2;
+        const boxY = 58;
+        ctx.fillStyle = 'rgba(11, 11, 15, 0.85)';
+        ctx.strokeStyle = '#e11d48';
+        ctx.lineWidth = 3;
+        roundRect(ctx, boxX, boxY, boxW, 54, 14, true, true);
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(hook, W / 2, boxY + 27, boxW - 20);
+      }
+
+      const cta = document.getElementById('ctaText').value.trim();
+      if (cta) {
+        ctx.font = '800 22px sans-serif';
+        const boxW = Math.min(W - 60, ctx.measureText(cta).width + 54);
+        const boxX = (W - boxW) / 2;
+        const boxY = H - 175;
+        ctx.fillStyle = '#16a34a';
+        roundRect(ctx, boxX, boxY, boxW, 56, 16, true, false);
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(cta, W / 2, boxY + 28, boxW - 24);
+      }
+
+      const loc = document.getElementById('locText').value.trim();
+      const insta = document.getElementById('instaText').value.trim();
+      ctx.textAlign = 'center';
+      if (loc) {
+        ctx.font = 'bold 17px sans-serif';
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillText(loc, W / 2, H - 95);
+      }
+      if (insta) {
+        ctx.font = '600 17px sans-serif';
+        ctx.fillStyle = '#e5e7eb';
+        ctx.fillText(insta, W / 2, H - 68);
+      }
+
+      if (flashAlpha > 0) {
+        ctx.fillStyle = `rgba(255, 255, 255, ${flashAlpha})`;
+        ctx.fillRect(0, 0, W, H);
+      }
+    }
+
+    function drawVideoCover(video, zoom = 1) {
+      const W = canvas.width;
+      const H = canvas.height;
+      const vw = video.videoWidth || W;
+      const vh = video.videoHeight || H;
+      const scale = Math.max(W / vw, H / vh) * zoom;
+      const dw = vw * scale;
+      const dh = vh * scale;
+      const dx = (W - dw) / 2;
+      const dy = (H - dh) / 2;
+      ctx.drawImage(video, dx, dy, dw, dh);
+    }
+
+    function drawStaticFrame() {
+      ctx.fillStyle = '#050507';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      if (clips.length > 0) {
+        drawVideoCover(clips[0].video, 1);
+      } else {
+        ctx.fillStyle = '#6b7280';
+        ctx.font = 'bold 20px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('PRÉVIA 9:16 PRONTA', canvas.width / 2, canvas.height / 2 - 12);
+        ctx.font = '15px sans-serif';
+        ctx.fillText('Toque em "+ Selecionar Vídeos"', canvas.width / 2, canvas.height / 2 + 16);
+      }
+      drawOverlays(0.45, 0);
+    }
+
+    function roundRect(ctx, x, y, w, h, r, fill, stroke) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+      if (fill) ctx.fill();
+      if (stroke) ctx.stroke();
+    }
+
+    ['hookText', 'ctaText', 'locText', 'instaText'].forEach(id => {
+      document.getElementById(id).addEventListener('input', () => {
+        if (!isPlayingPreview) drawStaticFrame();
+      });
+    });
+
+    // --- PRÉVIA ANIMADA ---
+    document.getElementById('btnPreview').addEventListener('click', () => {
+      if (clips.length === 0) return;
+      if (isPlayingPreview) {
+        isPlayingPreview = false;
+        cancelAnimationFrame(previewAnimId);
+        clips.forEach(c => c.video.pause());
+        document.getElementById('btnPreview').textContent = '▶ Testar Prévia';
+        drawStaticFrame();
+        return;
+      }
+      isPlay
